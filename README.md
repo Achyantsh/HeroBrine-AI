@@ -1,2 +1,2 @@
-# HeroBrine-AI
-An AI-powered Commitment Intelligence Platform that discovers commitments from unstructured data and proactively helps users plan, prioritize, and execute before deadlines are missed.
+# HeroBrine AI — The AI that discovers your commitments before you forget them.
+
