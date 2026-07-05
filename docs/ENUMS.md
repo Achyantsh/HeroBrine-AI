@@ -1,0 +1,45 @@
+# HeroBrine AI Enums
+
+## Priority
+
+- LOW
+- MEDIUM
+- HIGH
+- CRITICAL
+
+---
+
+## Status
+
+- PENDING
+- IN_PROGRESS
+- COMPLETED
+- MISSED
+- CANCELLED
+
+---
+
+## Category
+
+- ASSIGNMENT
+- EXAM
+- INTERVIEW
+- MEETING
+- PROJECT
+- BILL
+- HEALTH
+- PERSONAL
+- EVENT
+- OTHER
+
+---
+
+## Source
+
+- MANUAL
+- EMAIL
+- WHATSAPP
+- PDF
+- IMAGE
+- VOICE
+- CALENDAR

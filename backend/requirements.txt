@@ -1,0 +1,23 @@
+# FastAPI provides the web framework for REST API endpoints.
+fastapi==0.115.6
+
+# Uvicorn is the ASGI server used to run the API.
+uvicorn[standard]==0.34.0
+
+# SQLAlchemy ORM.
+SQLAlchemy==2.0.36
+
+# Database migrations.
+alembic==1.14.0
+
+# PostgreSQL driver.
+psycopg[binary]==3.2.3
+
+# Data validation.
+pydantic==2.10.4
+
+# Environment-based settings.
+pydantic-settings==2.7.0
+
+# Load .env during development.
+python-dotenv==1.0.1
