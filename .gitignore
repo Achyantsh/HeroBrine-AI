@@ -216,3 +216,36 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+
+# =========================
+# Node.js / Next.js
+# =========================
+node_modules/
+.next/
+out/
+
+# Build outputs
+coverage/
+dist/
+
+# Environment Variables
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Package manager logs
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# Turborepo
+.turbo/
+
+# Vercel
+.vercel/
+
+# Misc
+.DS_Store
+Thumbs.db
