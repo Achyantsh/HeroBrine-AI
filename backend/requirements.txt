@@ -21,3 +21,13 @@ pydantic-settings==2.7.0
 
 # Load .env during development.
 python-dotenv==1.0.1
+
+google-generativeai==0.8.5
+
+PyMuPDF==1.26.3
+
+python-multipart
+pypdf
+pillow
+pytesseract
+python-dateutil

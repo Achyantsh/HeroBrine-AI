@@ -5,8 +5,12 @@ This file creates the API application and exposes a simple health-style root rou
 
 from fastapi import FastAPI
 
-app = FastAPI(title="HeroBrine AI API")
+from app.api.ai import router as ai_router
+from app.api.commitments import router as commitment_router
 
+app = FastAPI(title="HeroBrine AI API")
+app.include_router(ai_router)
+app.include_router(commitment_router)
 
 @app.get("/")
 def root() -> dict[str, str]:
