@@ -1,5 +1,6 @@
 "use client"
 
+import { useMemo } from "react"
 import { motion } from "framer-motion"
 import { BarChart3 } from "lucide-react"
 
@@ -11,8 +12,17 @@ import { CategoryHorizontalBar } from "@/components/analytics/CategoryHorizontal
 import { ProductivityScore } from "@/components/analytics/ProductivityScore"
 import { WeeklySummaryCards } from "@/components/analytics/WeeklySummaryCards"
 import { AIRecommendationCard } from "@/components/analytics/AIRecommendationCard"
+import { useCommitments } from "@/hooks/useCommitments"
+import { computeAnalytics, type AnalyticsData } from "@/lib/analytics"
 
 export default function AnalyticsPage() {
+  const { commitments, loading } = useCommitments()
+
+  const analytics: AnalyticsData | null = useMemo(() => {
+    if (loading || commitments.length === 0) return null
+    return computeAnalytics(commitments)
+  }, [commitments, loading])
+
   return (
     <DashboardLayout>
       <motion.div
@@ -29,31 +39,55 @@ export default function AnalyticsPage() {
           </h1>
         </div>
 
+        {/* Loading skeleton */}
+        {loading && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="h-80 rounded-xl border border-border bg-card animate-pulse" />
+            <div className="h-80 rounded-xl border border-border bg-card animate-pulse" />
+          </div>
+        )}
+
         {/* Top row: 2-column charts */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <CommitmentBarChart />
-          <PriorityPieChart />
-        </div>
+        {!loading && analytics && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <CommitmentBarChart analytics={analytics} loading={loading} />
+            <PriorityPieChart analytics={analytics} loading={loading} />
+          </div>
+        )}
 
         {/* Completion Trend (full width) */}
-        <CompletionLineChart />
+        {!loading && (
+          <CompletionLineChart analytics={analytics} loading={loading} />
+        )}
 
         {/* Bottom section: 3 columns */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left: Categories */}
-          <div className="lg:col-span-2">
-            <CategoryHorizontalBar />
-          </div>
+        {!loading && (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Left: Categories */}
+            <div className="lg:col-span-2">
+              <CategoryHorizontalBar analytics={analytics} loading={loading} />
+            </div>
 
-          {/* Right sidebar */}
-          <div className="space-y-6">
-            <ProductivityScore />
-            <WeeklySummaryCards />
+            {/* Right sidebar */}
+            <div className="space-y-6">
+              <ProductivityScore analytics={analytics} loading={loading} />
+              <WeeklySummaryCards analytics={analytics} loading={loading} />
+            </div>
           </div>
-        </div>
+        )}
 
-        {/* AI Recommendations (full width) */}
-        <AIRecommendationCard />
+        {/* AI Insights (full width) */}
+        {!loading && (
+          <AIRecommendationCard analytics={analytics} loading={loading} />
+        )}
+
+        {/* Empty state */}
+        {!loading && !analytics && (
+          <div className="flex flex-col items-center justify-center py-16 text-center rounded-xl border border-dashed">
+            <BarChart3 className="size-12 text-muted-foreground/30 mb-4" />
+            <p className="text-sm text-muted-foreground">No analytics available yet.</p>
+          </div>
+        )}
       </motion.div>
     </DashboardLayout>
   )

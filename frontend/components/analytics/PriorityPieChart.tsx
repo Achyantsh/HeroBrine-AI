@@ -2,9 +2,16 @@
 
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from "recharts"
 import { motion } from "framer-motion"
-import { priorityDistribution } from "@/lib/analytics-data"
+import type { AnalyticsData } from "@/lib/analytics"
 
-export function PriorityPieChart() {
+interface PriorityPieChartProps {
+  analytics: AnalyticsData | null
+  loading: boolean
+}
+
+export function PriorityPieChart({ analytics }: PriorityPieChartProps) {
+  const data = analytics?.priorityDistribution ?? []
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 16 }}
@@ -19,7 +26,7 @@ export function PriorityPieChart() {
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <Pie
-              data={priorityDistribution}
+              data={data}
               cx="50%"
               cy="50%"
               innerRadius={55}
@@ -28,7 +35,7 @@ export function PriorityPieChart() {
               dataKey="value"
               stroke="none"
             >
-              {priorityDistribution.map((entry) => (
+              {data.map((entry) => (
                 <Cell key={entry.name} fill={entry.color} />
               ))}
             </Pie>

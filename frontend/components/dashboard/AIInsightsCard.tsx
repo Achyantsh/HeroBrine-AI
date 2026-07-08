@@ -1,46 +1,47 @@
 "use client"
 
+import { useMemo } from "react"
 import { motion } from "framer-motion"
 import {
   Lightbulb,
   AlertTriangle,
-  Info,
-  CheckCircle2,
+  TrendingUp,
+  Target,
   Sparkles,
+  Loader2,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { aiInsights } from "@/lib/mock-data"
+import { useCommitments } from "@/hooks/useCommitments"
+import { computeAnalytics } from "@/lib/analytics"
 
-const insightIcons: Record<string, React.ElementType> = {
-  warning: AlertTriangle,
-  suggestion: Lightbulb,
-  info: Info,
-  success: CheckCircle2,
+function getIcon(text: string) {
+  if (text.startsWith("⚠️")) return AlertTriangle
+  if (text.includes("Excellent")) return TrendingUp
+  if (text.includes("Focus")) return Target
+  return Lightbulb
 }
 
-const insightColors: Record<string, string> = {
-  warning:
-    "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-800/40 dark:bg-amber-950/30 dark:text-amber-200",
-  suggestion:
-    "border-blue-200 bg-blue-50 text-blue-800 dark:border-blue-800/40 dark:bg-blue-950/30 dark:text-blue-200",
-  info: "border-slate-200 bg-slate-50 text-slate-800 dark:border-slate-800/40 dark:bg-slate-950/30 dark:text-slate-200",
-  success:
-    "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-800/40 dark:bg-emerald-950/30 dark:text-emerald-200",
-}
-
-const iconWrapperColors: Record<string, string> = {
-  warning: "text-amber-600 dark:text-amber-400",
-  suggestion: "text-blue-600 dark:text-blue-400",
-  info: "text-slate-600 dark:text-slate-400",
-  success: "text-emerald-600 dark:text-emerald-400",
+function getColors(text: string) {
+  if (text.startsWith("⚠️"))
+    return {
+      border: "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-800/40 dark:bg-amber-950/30 dark:text-amber-200",
+      icon: "text-amber-600 dark:text-amber-400",
+    }
+  if (text.includes("Excellent") || text.includes("Focus"))
+    return {
+      border: "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-800/40 dark:bg-emerald-950/30 dark:text-emerald-200",
+      icon: "text-emerald-600 dark:text-emerald-400",
+    }
+  return {
+    border: "border-blue-200 bg-blue-50 text-blue-800 dark:border-blue-800/40 dark:bg-blue-950/30 dark:text-blue-200",
+    icon: "text-blue-600 dark:text-blue-400",
+  }
 }
 
 const container = {
   hidden: {},
   show: {
-    transition: {
-      staggerChildren: 0.08,
-    },
+    transition: { staggerChildren: 0.08 },
   },
 }
 
@@ -54,6 +55,49 @@ const item = {
 }
 
 export function AIInsightsCard() {
+  const { commitments, loading } = useCommitments()
+
+  const insights = useMemo(() => {
+    if (!commitments || commitments.length === 0) return []
+    const analytics = computeAnalytics(commitments)
+    return analytics.insights
+  }, [commitments])
+
+  if (loading) {
+    return (
+      <div className="space-y-3">
+        <div className="flex items-center gap-2">
+          <Sparkles className="size-4 text-primary" />
+          <h2 className="text-sm font-semibold text-foreground tracking-wide uppercase">
+            AI Insights
+          </h2>
+        </div>
+        <div className="space-y-2">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="h-12 rounded-lg border border-border/60 bg-card animate-pulse" />
+          ))}
+        </div>
+      </div>
+    )
+  }
+
+  if (insights.length === 0) {
+    return (
+      <div className="space-y-3">
+        <div className="flex items-center gap-2">
+          <Sparkles className="size-4 text-primary" />
+          <h2 className="text-sm font-semibold text-foreground tracking-wide uppercase">
+            AI Insights
+          </h2>
+        </div>
+        <div className="flex flex-col items-center justify-center py-8 text-center rounded-lg border border-dashed">
+          <Lightbulb className="size-10 text-muted-foreground/30 mb-3" />
+          <p className="text-sm text-muted-foreground">Start adding commitments to receive AI insights.</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2">
@@ -68,25 +112,21 @@ export function AIInsightsCard() {
         animate="show"
         className="space-y-2"
       >
-        {aiInsights.map((insight) => {
-          const Icon = insightIcons[insight.type] || Info
+        {insights.map((text, idx) => {
+          const Icon = getIcon(text)
+          const colors = getColors(text)
 
           return (
             <motion.div
-              key={insight.id}
+              key={idx}
               variants={item}
               className={cn(
                 "flex items-start gap-2.5 rounded-lg border p-3 text-xs leading-relaxed",
-                insightColors[insight.type]
+                colors.border
               )}
             >
-              <Icon
-                className={cn(
-                  "size-4 mt-0.5 shrink-0",
-                  iconWrapperColors[insight.type]
-                )}
-              />
-              <span>{insight.text}</span>
+              <Icon className={cn("size-4 mt-0.5 shrink-0", colors.icon)} />
+              <span>{text}</span>
             </motion.div>
           )
         })}

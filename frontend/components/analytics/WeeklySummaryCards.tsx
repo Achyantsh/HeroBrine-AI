@@ -1,96 +1,60 @@
 "use client"
 
 import { motion } from "framer-motion"
-import { CheckCircle2, Circle, AlertTriangle, AlertOctagon } from "lucide-react"
-import { cn } from "@/lib/utils"
-import { weeklySummary } from "@/lib/analytics-data"
+import { CheckCircle2, Clock, AlertTriangle, Flame } from "lucide-react"
+import type { AnalyticsData } from "@/lib/analytics"
 
-interface SummaryStat {
-  label: string
-  value: number
-  icon: React.ElementType
-  color: string
-  bgColor: string
-  darkBgColor: string
+interface WeeklySummaryCardsProps {
+  analytics: AnalyticsData | null
+  loading: boolean
 }
 
-const stats: SummaryStat[] = [
-  {
-    label: "Completed",
-    value: weeklySummary.completed,
-    icon: CheckCircle2,
-    color: "text-emerald-600 dark:text-emerald-400",
-    bgColor: "bg-emerald-50",
-    darkBgColor: "dark:bg-emerald-950/30",
-  },
-  {
-    label: "Pending",
-    value: weeklySummary.pending,
-    icon: Circle,
-    color: "text-amber-600 dark:text-amber-400",
-    bgColor: "bg-amber-50",
-    darkBgColor: "dark:bg-amber-950/30",
-  },
-  {
-    label: "Overdue",
-    value: weeklySummary.overdue,
-    icon: AlertTriangle,
-    color: "text-red-600 dark:text-red-400",
-    bgColor: "bg-red-50",
-    darkBgColor: "dark:bg-red-950/30",
-  },
-  {
-    label: "High Priority",
-    value: weeklySummary.highPriority,
-    icon: AlertOctagon,
-    color: "text-orange-600 dark:text-orange-400",
-    bgColor: "bg-orange-50",
-    darkBgColor: "dark:bg-orange-950/30",
-  },
-]
+export function WeeklySummaryCards({ analytics }: WeeklySummaryCardsProps) {
+  const a = analytics ?? {
+    completed: 0,
+    pending: 0,
+    overdue: 0,
+    highPriorityCount: 0,
+  }
 
-const container = {
-  hidden: {},
-  show: {
-    transition: { staggerChildren: 0.07 },
-  },
-}
-
-const item = {
-  hidden: { opacity: 0, y: 12 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.3, ease: [0.25, 0.1, 0.25, 1] as const } },
-}
-
-export function WeeklySummaryCards() {
   return (
     <motion.div
-      variants={container}
-      initial="hidden"
-      animate="show"
-      className="grid grid-cols-2 gap-3"
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, delay: 0.4 }}
+      className="rounded-xl border border-border bg-card p-4 md:p-5"
     >
-      {stats.map((stat) => {
-        const Icon = stat.icon
-        return (
-          <motion.div
-            key={stat.label}
-            variants={item}
-            className={cn(
-              "flex flex-col gap-2 rounded-xl border border-border/60 p-3.5",
-              stat.bgColor,
-              stat.darkBgColor
-            )}
-          >
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-muted-foreground font-medium uppercase tracking-wide">
-                {stat.label}
-              </span>
-              <Icon className={cn("size-4", stat.color)} />
-            </div>
-            <span className="text-2xl font-bold text-foreground">{stat.value}</span>
-          </motion.div>
-        )
-      })}
+      <h3 className="text-sm font-semibold text-foreground mb-4">Weekly Summary</h3>
+      <div className="grid grid-cols-2 gap-3">
+        <div className="rounded-lg border border-border/60 bg-muted/40 p-3">
+          <div className="flex items-center gap-2 mb-1">
+            <CheckCircle2 className="size-4 text-emerald-500" />
+            <span className="text-[10px] uppercase tracking-wide text-muted-foreground">Completed</span>
+          </div>
+          <p className="text-lg font-bold text-foreground">{a.completed}</p>
+        </div>
+        <div className="rounded-lg border border-border/60 bg-muted/40 p-3">
+          <div className="flex items-center gap-2 mb-1">
+            <Clock className="size-4 text-blue-500" />
+            <span className="text-[10px] uppercase tracking-wide text-muted-foreground">Pending</span>
+          </div>
+          <p className="text-lg font-bold text-foreground">{a.pending}</p>
+        </div>
+        <div className="rounded-lg border border-border/60 bg-muted/40 p-3">
+          <div className="flex items-center gap-2 mb-1">
+            <AlertTriangle className="size-4 text-amber-500" />
+            <span className="text-[10px] uppercase tracking-wide text-muted-foreground">Overdue</span>
+          </div>
+          <p className="text-lg font-bold text-foreground">{a.overdue}</p>
+        </div>
+        <div className="rounded-lg border border-border/60 bg-muted/40 p-3">
+          <div className="flex items-center gap-2 mb-1">
+            <Flame className="size-4 text-red-500" />
+            <span className="text-[10px] uppercase tracking-wide text-muted-foreground">High Priority</span>
+          </div>
+          <p className="text-lg font-bold text-foreground">{a.highPriorityCount}</p>
+        </div>
+      </div>
     </motion.div>
   )
 }

@@ -11,9 +11,16 @@ import {
   Legend,
 } from "recharts"
 import { motion } from "framer-motion"
-import { weeklyData } from "@/lib/analytics-data"
+import type { AnalyticsData } from "@/lib/analytics"
 
-export function CommitmentBarChart() {
+interface CommitmentBarChartProps {
+  analytics: AnalyticsData | null
+  loading: boolean
+}
+
+export function CommitmentBarChart({ analytics, loading }: CommitmentBarChartProps) {
+  const data = analytics?.weeklyData ?? []
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 16 }}
@@ -26,7 +33,7 @@ export function CommitmentBarChart() {
       </h3>
       <div className="h-64">
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={weeklyData} barGap={4} barCategoryGap="20%">
+          <BarChart data={data} barGap={4} barCategoryGap="20%">
             <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
             <XAxis
               dataKey="week"

@@ -1,71 +1,75 @@
 "use client"
 
 import { motion } from "framer-motion"
-import { Lightbulb, Sparkles, TrendingUp, AlertTriangle } from "lucide-react"
-import { cn } from "@/lib/utils"
-import { aiRecommendations } from "@/lib/analytics-data"
+import { Lightbulb, AlertTriangle, TrendingUp, Target, Zap } from "lucide-react"
+import type { AnalyticsData } from "@/lib/analytics"
 
-const typeIcons: Record<string, React.ElementType> = {
-  pattern: TrendingUp,
+interface AIRecommendationCardProps {
+  analytics: AnalyticsData | null
+  loading: boolean
+}
+
+const iconMap: Record<string, React.ElementType> = {
   insight: Lightbulb,
-  suggestion: AlertTriangle,
-  tip: Sparkles,
+  tip: Zap,
+  pattern: TrendingUp,
+  suggestion: Target,
 }
 
-const typeColors: Record<string, string> = {
-  pattern:
-    "border-purple-200 bg-purple-50 text-purple-800 dark:border-purple-800/40 dark:bg-purple-950/30 dark:text-purple-200",
-  insight:
-    "border-blue-200 bg-blue-50 text-blue-800 dark:border-blue-800/40 dark:bg-blue-950/30 dark:text-blue-200",
-  suggestion:
-    "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-800/40 dark:bg-amber-950/30 dark:text-amber-200",
-  tip: "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-800/40 dark:bg-emerald-950/30 dark:text-emerald-200",
+function getIcon(text: string) {
+  if (text.startsWith("⚠️")) return AlertTriangle
+  if (text.includes("Excellent")) return TrendingUp
+  if (text.includes("Focus")) return Target
+  return Lightbulb
 }
 
-const container = {
-  hidden: {},
-  show: {
-    transition: { staggerChildren: 0.08 },
-  },
-}
+export function AIRecommendationCard({ analytics }: AIRecommendationCardProps) {
+  const insights = analytics?.insights ?? []
 
-const item = {
-  hidden: { opacity: 0, x: -12 },
-  show: { opacity: 1, x: 0, transition: { duration: 0.3, ease: [0.25, 0.1, 0.25, 1] as const } },
-}
-
-export function AIRecommendationCard() {
-  return (
-    <div className="rounded-xl border border-border bg-card p-4 md:p-5">
-      <div className="flex items-center gap-2 mb-4">
-        <Sparkles className="size-4 text-primary" />
-        <h3 className="text-sm font-semibold text-foreground">AI Recommendations</h3>
-      </div>
-
+  if (insights.length === 0) {
+    return (
       <motion.div
-        variants={container}
-        initial="hidden"
-        animate="show"
-        className="space-y-2"
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: 0.45 }}
+        className="rounded-xl border border-border bg-card p-4 md:p-5"
       >
-        {aiRecommendations.map((rec) => {
-          const Icon = typeIcons[rec.type] || Lightbulb
+        <h3 className="text-sm font-semibold text-foreground mb-4">AI Insights</h3>
+        <div className="flex flex-col items-center justify-center py-8 text-center">
+          <Lightbulb className="size-10 text-muted-foreground/30 mb-3" />
+          <p className="text-sm text-muted-foreground">Start adding commitments to receive AI insights.</p>
+        </div>
+      </motion.div>
+    )
+  }
 
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, delay: 0.45 }}
+      className="rounded-xl border border-border bg-card p-4 md:p-5"
+    >
+      <h3 className="text-sm font-semibold text-foreground mb-4">AI Insights</h3>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        {insights.map((text, i) => {
+          const Icon = getIcon(text)
           return (
             <motion.div
-              key={rec.id}
-              variants={item}
-              className={cn(
-                "flex items-start gap-2.5 rounded-lg border p-3 text-xs leading-relaxed",
-                typeColors[rec.type]
-              )}
+              key={i}
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.3, delay: 0.05 * i }}
+              className="flex items-start gap-3 rounded-lg border border-border/60 bg-muted/30 p-3"
             >
-              <Icon className="size-4 mt-0.5 shrink-0" />
-              <span>{rec.text}</span>
+              <div className="mt-0.5 size-8 shrink-0 rounded-full bg-primary/10 flex items-center justify-center">
+                <Icon className="size-4 text-primary" />
+              </div>
+              <p className="text-xs text-foreground leading-relaxed">{text}</p>
             </motion.div>
           )
         })}
-      </motion.div>
-    </div>
+      </div>
+    </motion.div>
   )
 }

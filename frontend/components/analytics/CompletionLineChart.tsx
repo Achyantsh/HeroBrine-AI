@@ -11,29 +11,35 @@ import {
   Legend,
 } from "recharts"
 import { motion } from "framer-motion"
-import { completionTrend } from "@/lib/analytics-data"
+import type { AnalyticsData } from "@/lib/analytics"
 
-export function CompletionLineChart() {
+interface CompletionLineChartProps {
+  analytics: AnalyticsData | null
+  loading: boolean
+}
+
+export function CompletionLineChart({ analytics }: CompletionLineChartProps) {
+  const data = analytics?.weeklyData ?? []
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, delay: 0.15 }}
+      transition={{ duration: 0.4, delay: 0.2 }}
       className="rounded-xl border border-border bg-card p-4 md:p-5"
     >
       <h3 className="text-sm font-semibold text-foreground mb-4">
-        Completion Trend
+        Weekly Completion Trend
       </h3>
       <div className="h-64">
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={completionTrend}>
-            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+          <LineChart data={data} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
             <XAxis
-              dataKey="date"
-              tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+              dataKey="week"
+              tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }}
               axisLine={{ stroke: "hsl(var(--border))" }}
               tickLine={false}
-              interval="preserveStartEnd"
             />
             <YAxis
               tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }}
@@ -59,8 +65,8 @@ export function CompletionLineChart() {
               name="Completed"
               stroke="hsl(var(--chart-2))"
               strokeWidth={2}
-              dot={{ r: 3, fill: "hsl(var(--chart-2))", strokeWidth: 0 }}
-              activeDot={{ r: 5, strokeWidth: 0 }}
+              dot={{ r: 4 }}
+              activeDot={{ r: 6 }}
             />
             <Line
               type="monotone"
@@ -68,8 +74,7 @@ export function CompletionLineChart() {
               name="Created"
               stroke="hsl(var(--primary))"
               strokeWidth={2}
-              dot={{ r: 3, fill: "hsl(var(--primary))", strokeWidth: 0 }}
-              activeDot={{ r: 5, strokeWidth: 0 }}
+              dot={{ r: 4 }}
             />
           </LineChart>
         </ResponsiveContainer>
