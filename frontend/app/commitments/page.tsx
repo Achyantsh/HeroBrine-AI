@@ -2,14 +2,15 @@
 
 import { useState, useMemo, useCallback } from "react"
 import { motion } from "framer-motion"
-import { ListChecks, Plus } from "lucide-react"
+import { ListChecks, Plus, Loader2 } from "lucide-react"
 
 import { DashboardLayout } from "@/components/layout/DashboardLayout"
 import { Button } from "@/components/ui/button"
 import { CommitmentCard } from "@/components/commitments/CommitmentCard"
 import { CommitmentFilters, type Filters } from "@/components/commitments/CommitmentFilters"
-import { CommitmentDetailsSheet } from "@/components/commitments/CommitmentDetailsSheet"
-import { todayCommitments, upcomingCommitments, type Commitment } from "@/lib/mock-data"
+import { EditCommitmentDialog } from "@/components/commitments/EditCommitmentDialog"
+import { useCommitments } from "@/hooks/useCommitments"
+import type { Commitment } from "@/types/commitment"
 
 const priorityRank: Record<string, number> = {
   critical: 4,
@@ -19,30 +20,32 @@ const priorityRank: Record<string, number> = {
 }
 
 export default function CommitmentsPage() {
-  const [selectedCommitment, setSelectedCommitment] = useState<Commitment | null>(null)
-  const [sheetOpen, setSheetOpen] = useState(false)
+  const { commitments, loading, refresh } = useCommitments()
 
-  const allCommitments: Commitment[] = useMemo(
-    () => [...todayCommitments, ...upcomingCommitments],
-    []
-  )
+  const [editCommitment, setEditCommitment] = useState<Commitment | null>(null)
+  const [editOpen, setEditOpen] = useState(false)
 
   const [filters, setFilters] = useState<Filters>({
     search: "",
     priority: "all",
     category: "all",
     status: "all",
+    source: "all",
     sortField: "deadline",
     sortOrder: "asc",
   })
 
-  const handleViewDetails = useCallback((commitment: Commitment) => {
-    setSelectedCommitment(commitment)
-    setSheetOpen(true)
+  const handleEdit = useCallback((commitment: Commitment) => {
+    setEditCommitment(commitment)
+    setEditOpen(true)
   }, [])
 
+  const handleEditSuccess = useCallback(() => {
+    refresh()
+  }, [refresh])
+
   const filteredCommitments = useMemo(() => {
-    let result = [...allCommitments]
+    let result = [...commitments]
 
     // Search filter
     if (filters.search.trim()) {
@@ -69,12 +72,17 @@ export default function CommitmentsPage() {
       result = result.filter((c) => c.status === filters.status)
     }
 
+    // Source filter
+    if (filters.source !== "all") {
+      result = result.filter((c) => c.source === filters.source)
+    }
+
     // Sort
     result.sort((a, b) => {
       let cmp = 0
       switch (filters.sortField) {
         case "deadline":
-          cmp = new Date(a.deadline).getTime() - new Date(b.deadline).getTime()
+          cmp = new Date(a.deadline ?? 0).getTime() - new Date(b.deadline ?? 0).getTime()
           break
         case "priority":
           cmp = (priorityRank[a.priority] ?? 0) - (priorityRank[b.priority] ?? 0)
@@ -90,7 +98,7 @@ export default function CommitmentsPage() {
     })
 
     return result
-  }, [allCommitments, filters])
+  }, [commitments, filters])
 
   return (
     <DashboardLayout>
@@ -106,7 +114,7 @@ export default function CommitmentsPage() {
             <ListChecks className="size-6 text-primary" />
             <h1 className="text-2xl font-bold tracking-tight text-foreground">Commitments</h1>
             <span className="text-sm text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
-              {filteredCommitments.length} of {allCommitments.length}
+              {filteredCommitments.length} of {commitments.length}
             </span>
           </div>
           <Button size="sm" className="gap-1.5">
@@ -124,47 +132,85 @@ export default function CommitmentsPage() {
           <CommitmentFilters filters={filters} onFiltersChange={setFilters} />
         </motion.div>
 
-        {/* Commitment cards list */}
-        <div className="space-y-2">
-          {filteredCommitments.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-center">
-              <ListChecks className="size-12 text-muted-foreground/30 mb-4" />
-              <p className="text-sm text-muted-foreground">No commitments match your filters.</p>
-              <Button
-                variant="link"
-                size="sm"
-                onClick={() =>
-                  setFilters({
-                    search: "",
-                    priority: "all",
-                    category: "all",
-                    status: "all",
-                    sortField: "deadline",
-                    sortOrder: "asc",
-                  })
-                }
+        {/* Loading skeleton */}
+        {loading && (
+          <div className="space-y-3">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div
+                key={i}
+                className="flex items-start gap-4 rounded-xl border border-border/60 bg-card p-4 animate-pulse"
               >
-                Clear all filters
-              </Button>
-            </div>
-          ) : (
-            filteredCommitments.map((commitment, i) => (
-              <CommitmentCard
-                key={commitment.id}
-                commitment={commitment}
-                index={i}
-                onViewDetails={handleViewDetails}
-              />
-            ))
-          )}
-        </div>
+                <div className="size-2.5 rounded-full bg-muted mt-1.5" />
+                <div className="flex-1 space-y-2">
+                  <div className="flex gap-2">
+                    <div className="h-4 w-48 rounded bg-muted" />
+                    <div className="h-4 w-14 rounded bg-muted" />
+                    <div className="h-4 w-16 rounded bg-muted" />
+                    <div className="h-4 w-20 rounded bg-muted" />
+                  </div>
+                  <div className="h-3 w-64 rounded bg-muted" />
+                  <div className="flex gap-3">
+                    <div className="h-3 w-32 rounded bg-muted" />
+                    <div className="h-3 w-16 rounded bg-muted" />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Commitment cards list */}
+        {!loading && (
+          <div className="space-y-2">
+            {filteredCommitments.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-center">
+                <ListChecks className="size-12 text-muted-foreground/30 mb-4" />
+                <p className="text-sm text-muted-foreground">
+                  {commitments.length === 0
+                    ? "No commitments yet. Add one to get started."
+                    : "No commitments match your filters."}
+                </p>
+                {commitments.length > 0 && (
+                  <Button
+                    variant="link"
+                    size="sm"
+                    onClick={() =>
+                      setFilters({
+                        search: "",
+                        priority: "all",
+                        category: "all",
+                        status: "all",
+                        source: "all",
+                        sortField: "deadline",
+                        sortOrder: "asc",
+                      })
+                    }
+                  >
+                    Clear all filters
+                  </Button>
+                )}
+              </div>
+            ) : (
+              filteredCommitments.map((commitment, i) => (
+                <CommitmentCard
+                  key={commitment.id}
+                  commitment={commitment}
+                  index={i}
+                  onEdit={handleEdit}
+                  onRefresh={refresh}
+                />
+              ))
+            )}
+          </div>
+        )}
       </motion.div>
 
-      {/* Details sheet */}
-      <CommitmentDetailsSheet
-        commitment={selectedCommitment}
-        open={sheetOpen}
-        onOpenChange={setSheetOpen}
+      {/* Edit dialog */}
+      <EditCommitmentDialog
+        commitment={editCommitment}
+        open={editOpen}
+        onOpenChange={setEditOpen}
+        onSuccess={handleEditSuccess}
       />
     </DashboardLayout>
   )

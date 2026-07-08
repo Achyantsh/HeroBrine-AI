@@ -1,7 +1,7 @@
 "use client"
 
 import { motion } from "framer-motion"
-import { FileText, FileImage, Mic, PenSquare, FileUp } from "lucide-react"
+import { FileImage, Mic, PenSquare, FileUp } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 interface QuickAction {
@@ -15,15 +15,6 @@ interface QuickAction {
 }
 
 const actions: QuickAction[] = [
-  {
-    title: "Text",
-    description: "Extract commitments from notes",
-    icon: FileText,
-    tab: "text",
-    color: "text-blue-600",
-    bgColor: "bg-blue-50",
-    darkBgColor: "dark:bg-blue-950/40",
-  },
   {
     title: "PDF",
     description: "Upload a document to analyze",
@@ -90,7 +81,7 @@ export function QuickActionsGrid({ onAction }: QuickActionsGridProps) {
         variants={container}
         initial="hidden"
         animate="show"
-        className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3"
+        className="grid grid-cols-2 sm:grid-cols-4 gap-3"
       >
         {actions.map((action) => {
           const Icon = action.icon

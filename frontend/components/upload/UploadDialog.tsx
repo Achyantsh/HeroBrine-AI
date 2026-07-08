@@ -1,5 +1,5 @@
 "use client"
-
+import axios from "axios"
 import { useState, useCallback } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { format } from "date-fns"
@@ -9,19 +9,16 @@ import {
   FileImage,
   Mic,
   PenSquare,
-  Upload,
   Sparkles,
-  Send,
-  Paperclip,
-  X,
   Trash2,
   StopCircle,
-  AudioLines,
   CalendarIcon,
   ImageIcon,
   CheckCircle2,
+  Loader2,
 } from "lucide-react"
 import { useDropzone } from "react-dropzone"
+import { toast } from "sonner"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -32,7 +29,6 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-  DialogFooter,
 } from "@/components/ui/dialog"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
@@ -55,6 +51,7 @@ interface UploadDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   defaultTab?: string
+  onSuccess?: () => void
 }
 
 // ─── Tab data ───────────────────────────────────────────────────
@@ -71,74 +68,6 @@ const tabs: TabDefinition[] = [
   { value: "voice", label: "Voice", icon: Mic },
   { value: "manual", label: "Manual", icon: PenSquare },
 ]
-
-// ─── DropZone sub-component ─────────────────────────────────────
-function DropZone({
-  accept,
-  icon: Icon,
-  label,
-  description,
-  preview,
-  onClear,
-  isDragReject,
-}: {
-  accept: Record<string, string[]>
-  icon: React.ElementType
-  label: string
-  description: string
-  preview?: string | null
-  onClear?: () => void
-  isDragReject?: boolean
-}) {
-  const onDrop = useCallback(() => {
-    /* no-op for mock */
-  }, [])
-
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    onDrop,
-    accept,
-    multiple: false,
-  })
-
-  if (preview) {
-    return (
-      <div className="relative flex flex-col items-center gap-3 rounded-xl border-2 border-emerald-200 bg-emerald-50/50 p-6 dark:border-emerald-800/40 dark:bg-emerald-950/20">
-        <CheckCircle2 className="size-8 text-emerald-500" />
-        <p className="text-sm font-medium text-foreground">File ready</p>
-        <p className="text-xs text-muted-foreground truncate max-w-[200px]">
-          {preview}
-        </p>
-        {onClear && (
-          <Button variant="ghost" size="icon-sm" onClick={onClear} className="absolute top-2 right-2">
-            <Trash2 className="size-4" />
-          </Button>
-        )}
-      </div>
-    )
-  }
-
-  return (
-    <div
-      {...getRootProps()}
-      className={cn(
-        "flex cursor-pointer flex-col items-center gap-3 rounded-xl border-2 border-dashed p-8 transition-colors",
-        isDragActive && !isDragReject
-          ? "border-primary bg-primary/5"
-          : "border-border hover:border-muted-foreground/30 hover:bg-muted/30",
-        isDragReject && "border-destructive bg-destructive/5"
-      )}
-    >
-      <input {...getInputProps()} />
-      <div className="flex size-12 items-center justify-center rounded-full bg-muted">
-        <Icon className="size-6 text-muted-foreground" />
-      </div>
-      <div className="text-center">
-        <p className="text-sm font-medium text-foreground">{label}</p>
-        <p className="mt-0.5 text-xs text-muted-foreground">{description}</p>
-      </div>
-    </div>
-  )
-}
 
 // ─── Tab: Text ──────────────────────────────────────────────────
 function TextTab() {
@@ -166,23 +95,82 @@ function TextTab() {
 }
 
 // ─── Tab: PDF ───────────────────────────────────────────────────
-function PdfTab() {
-  const [file, setFile] = useState<string | null>(null)
+function PdfTab({ onSuccess }: { onSuccess?: () => void }) {
+  const [file, setFile] = useState<File | null>(null)
+  const [uploading, setUploading] = useState(false)
+
+  const onDrop = useCallback((acceptedFiles: File[]) => {
+    if (acceptedFiles.length > 0) {
+      setFile(acceptedFiles[0])
+    }
+  }, [])
+
+  const { getRootProps, getInputProps, isDragActive, isDragReject } = useDropzone({
+    onDrop,
+    accept: { "application/pdf": [".pdf"] },
+    multiple: false,
+  })
+
+  async function uploadPdf() {
+    if (!file) return
+    setUploading(true)
+    try {
+      const formData = new FormData()
+      formData.append("file", file)
+      await axios.post("http://127.0.0.1:8000/ai/pdf", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      })
+      setFile(null)
+      toast.success("PDF processed and commitments saved.")
+      onSuccess?.()
+    } catch {
+      toast.error("Failed to upload PDF. Please try again.")
+    } finally {
+      setUploading(false)
+    }
+  }
 
   return (
     <div className="space-y-4">
-      <DropZone
-        accept={{ "application/pdf": [".pdf"] }}
-        icon={FileUp}
-        label="Upload PDF"
-        description="Drag & drop a PDF, or click to browse"
-        preview={file}
-        onClear={() => setFile(null)}
-      />
+      {file ? (
+        <div className="relative flex flex-col items-center gap-3 rounded-xl border-2 border-emerald-200 bg-emerald-50 p-6 dark:border-emerald-800/40 dark:bg-emerald-950/20">
+          <CheckCircle2 className="size-8 text-emerald-500" />
+          <p className="font-medium text-sm">{file.name}</p>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute top-2 right-2"
+            onClick={() => setFile(null)}
+          >
+            <Trash2 className="size-4" />
+          </Button>
+        </div>
+      ) : (
+        <div
+          {...getRootProps()}
+          className={cn(
+            "flex cursor-pointer flex-col items-center gap-3 rounded-xl border-2 border-dashed p-8 transition-colors",
+            isDragActive && !isDragReject
+              ? "border-primary bg-primary/5"
+              : "border-border hover:border-muted-foreground/30 hover:bg-muted/30",
+            isDragReject && "border-destructive bg-destructive/5"
+          )}
+        >
+          <input {...getInputProps()} />
+          <FileUp className="size-10 text-muted-foreground" />
+          <p className="text-sm text-muted-foreground">Drag PDF here or click to browse</p>
+        </div>
+      )}
       <div className="flex justify-end">
-        <Button size="sm" disabled={!file} className="gap-1.5">
-          <Sparkles className="size-4" />
-          Extract from PDF
+        <Button disabled={!file || uploading} onClick={uploadPdf}>
+          {uploading ? (
+            <>
+              <Loader2 className="size-4 animate-spin mr-1.5" />
+              Uploading...
+            </>
+          ) : (
+            "Extract from PDF"
+          )}
         </Button>
       </div>
     </div>
@@ -190,12 +178,16 @@ function PdfTab() {
 }
 
 // ─── Tab: Image ─────────────────────────────────────────────────
-function ImageTab() {
+function ImageTab({ onSuccess }: { onSuccess?: () => void }) {
+  const [file, setFile] = useState<File | null>(null)
   const [preview, setPreview] = useState<string | null>(null)
+  const [uploading, setUploading] = useState(false)
 
-  const onDrop = useCallback((accepted: File[]) => {
-    if (accepted.length > 0) {
-      setPreview(URL.createObjectURL(accepted[0]))
+  const onDrop = useCallback((acceptedFiles: File[]) => {
+    if (acceptedFiles.length > 0) {
+      const f = acceptedFiles[0]
+      setFile(f)
+      setPreview(URL.createObjectURL(f))
     }
   }, [])
 
@@ -205,71 +197,153 @@ function ImageTab() {
     multiple: false,
   })
 
-  if (preview) {
-    return (
-      <div className="space-y-4">
-        <div className="relative overflow-hidden rounded-xl border border-border">
-          <img
-            src={preview}
-            alt="Uploaded preview"
-            className="max-h-[300px] w-full object-contain bg-muted/30"
-          />
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            onClick={() => setPreview(null)}
-            className="absolute top-2 right-2 bg-background/80 backdrop-blur-sm"
-          >
-            <Trash2 className="size-4" />
-          </Button>
-        </div>
-        <div className="flex justify-end">
-          <Button size="sm" className="gap-1.5">
-            <Sparkles className="size-4" />
-            Extract from Image
-          </Button>
-        </div>
-      </div>
-    )
+  function clearImage() {
+    if (preview) URL.revokeObjectURL(preview)
+    setFile(null)
+    setPreview(null)
+  }
+
+  async function uploadImage() {
+    if (!file) return
+    setUploading(true)
+    try {
+      const formData = new FormData()
+      formData.append("file", file)
+      await axios.post("http://127.0.0.1:8000/ai/image", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      })
+      clearImage()
+      toast.success("Image processed and commitments saved.")
+      onSuccess?.()
+    } catch {
+      toast.error("Failed to upload image. Please try again.")
+    } finally {
+      setUploading(false)
+    }
   }
 
   return (
-    <div
-      {...getRootProps()}
-      className={cn(
-        "flex cursor-pointer flex-col items-center gap-3 rounded-xl border-2 border-dashed p-8 transition-colors",
-        isDragActive && !isDragReject
-          ? "border-primary bg-primary/5"
-          : "border-border hover:border-muted-foreground/30 hover:bg-muted/30",
-        isDragReject && "border-destructive bg-destructive/5"
+    <div className="space-y-4">
+      {preview && file ? (
+        <div className="space-y-4">
+          <div className="relative overflow-hidden rounded-xl border border-border">
+            <img
+              src={preview}
+              alt="Uploaded preview"
+              className="max-h-[300px] w-full object-contain bg-muted/30"
+            />
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              onClick={clearImage}
+              disabled={uploading}
+              className="absolute top-2 right-2 bg-background/80 backdrop-blur-sm"
+            >
+              <Trash2 className="size-4" />
+            </Button>
+          </div>
+          <div className="flex justify-end">
+            <Button onClick={uploadImage} disabled={uploading} className="gap-1.5">
+              {uploading ? (
+                <>
+                  <Loader2 className="size-4 animate-spin" />
+                  Uploading...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="size-4" />
+                  Extract from Image
+                </>
+              )}
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <div
+          {...getRootProps()}
+          className={cn(
+            "flex cursor-pointer flex-col items-center gap-3 rounded-xl border-2 border-dashed p-8 transition-colors",
+            isDragActive && !isDragReject
+              ? "border-primary bg-primary/5"
+              : "border-border hover:border-muted-foreground/30 hover:bg-muted/30",
+            isDragReject && "border-destructive bg-destructive/5"
+          )}
+        >
+          <input {...getInputProps()} />
+          <div className="flex size-12 items-center justify-center rounded-full bg-muted">
+            <ImageIcon className="size-6 text-muted-foreground" />
+          </div>
+          <div className="text-center">
+            <p className="text-sm font-medium text-foreground">Upload Image</p>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              Drag & drop a screenshot or photo, or click to browse
+            </p>
+          </div>
+        </div>
       )}
-    >
-      <input {...getInputProps()} />
-      <div className="flex size-12 items-center justify-center rounded-full bg-muted">
-        <ImageIcon className="size-6 text-muted-foreground" />
-      </div>
-      <div className="text-center">
-        <p className="text-sm font-medium text-foreground">Upload Image</p>
-        <p className="mt-0.5 text-xs text-muted-foreground">
-          Drag & drop a screenshot or photo, or click to browse
-        </p>
-      </div>
     </div>
   )
 }
 
 // ─── Tab: Voice ─────────────────────────────────────────────────
-function VoiceTab() {
+function VoiceTab({ onSuccess }: { onSuccess?: () => void }) {
+  const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null)
   const [recording, setRecording] = useState(false)
-  const [recorded, setRecorded] = useState(false)
+  const [audioBlob, setAudioBlob] = useState<Blob | null>(null)
+  const [uploading, setUploading] = useState(false)
 
-  const toggleRecording = () => {
-    if (recording) {
-      setRecording(false)
-      setRecorded(true)
-    } else {
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      const recorder = new MediaRecorder(stream, { mimeType: "audio/webm" })
+      const chunks: BlobPart[] = []
+
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) chunks.push(e.data)
+      }
+
+      recorder.onstop = () => {
+        const blob = new Blob(chunks, { type: "audio/webm" })
+        setAudioBlob(blob)
+        stream.getTracks().forEach((t) => t.stop())
+      }
+
+      recorder.start()
+      setMediaRecorder(recorder)
       setRecording(true)
-      setRecorded(false)
+      setAudioBlob(null)
+    } catch {
+      toast.error("Microphone access denied. Please allow microphone permissions.")
+    }
+  }
+
+  const stopRecording = () => {
+    if (mediaRecorder && mediaRecorder.state !== "inactive") {
+      mediaRecorder.stop()
+      setRecording(false)
+    }
+  }
+
+  const deleteRecording = () => {
+    setAudioBlob(null)
+  }
+
+  const uploadVoice = async () => {
+    if (!audioBlob) return
+    setUploading(true)
+    try {
+      const formData = new FormData()
+      formData.append("file", audioBlob, "recording.webm")
+      await axios.post("http://127.0.0.1:8000/ai/voice", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      })
+      setAudioBlob(null)
+      toast.success("Voice processed and commitments saved.")
+      onSuccess?.()
+    } catch {
+      toast.error("Failed to upload voice recording. Please try again.")
+    } finally {
+      setUploading(false)
     }
   }
 
@@ -277,15 +351,17 @@ function VoiceTab() {
     <div className="flex flex-col items-center gap-6 py-6">
       {/* Microphone button */}
       <motion.button
-        onClick={toggleRecording}
+        onClick={recording ? stopRecording : startRecording}
         whileTap={{ scale: 0.9 }}
+        disabled={uploading}
         className={cn(
           "relative flex size-24 items-center justify-center rounded-full transition-all",
           recording
             ? "bg-destructive text-destructive-foreground shadow-lg shadow-destructive/30"
-            : recorded
+            : audioBlob
               ? "bg-emerald-500 text-white shadow-lg shadow-emerald-500/30"
-              : "bg-muted text-muted-foreground hover:bg-muted/80"
+              : "bg-muted text-muted-foreground hover:bg-muted/80",
+          uploading && "opacity-50 cursor-not-allowed"
         )}
       >
         {recording ? (
@@ -311,16 +387,16 @@ function VoiceTab() {
       <div className="text-center">
         {recording ? (
           <p className="text-sm font-medium text-destructive">Recording...</p>
-        ) : recorded ? (
+        ) : audioBlob ? (
           <p className="text-sm font-medium text-emerald-600 dark:text-emerald-400">
-            Recording saved
+            Recording ready ({(audioBlob.size / 1024).toFixed(0)} KB)
           </p>
         ) : (
           <p className="text-sm text-muted-foreground">Tap to start recording</p>
         )}
       </div>
 
-      {/* Waveform placeholder */}
+      {/* Waveform animation while recording */}
       {recording && (
         <motion.div
           initial={{ opacity: 0, height: 0 }}
@@ -330,9 +406,7 @@ function VoiceTab() {
           {Array.from({ length: 24 }).map((_, i) => (
             <motion.div
               key={i}
-              animate={{
-                height: [8, 32, 8, 20, 8, 40, 8],
-              }}
+              animate={{ height: [8, 32, 8, 20, 8, 40, 8] }}
               transition={{
                 duration: 1.2,
                 repeat: Infinity,
@@ -351,21 +425,41 @@ function VoiceTab() {
           <Button
             variant="destructive"
             size="sm"
-            onClick={toggleRecording}
+            onClick={stopRecording}
+            disabled={uploading}
             className="gap-1.5"
           >
             <StopCircle className="size-4" />
             Stop Recording
           </Button>
         )}
-        {recorded && (
+        {audioBlob && !recording && (
           <>
-            <Button variant="outline" size="sm" onClick={() => setRecorded(false)}>
-              Re-record
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={deleteRecording}
+              disabled={uploading}
+            >
+              Delete Recording
             </Button>
-            <Button size="sm" className="gap-1.5">
-              <Sparkles className="size-4" />
-              Transcribe & Extract
+            <Button
+              size="sm"
+              onClick={uploadVoice}
+              disabled={uploading}
+              className="gap-1.5"
+            >
+              {uploading ? (
+                <>
+                  <Loader2 className="size-4 animate-spin" />
+                  Uploading...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="size-4" />
+                  Transcribe & Extract
+                </>
+              )}
             </Button>
           </>
         )}
@@ -395,7 +489,7 @@ const priorities = [
   { value: "critical", label: "Critical" },
 ]
 
-function ManualTab() {
+function ManualTab({ onSuccess }: { onSuccess?: () => void }) {
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
   const [category, setCategory] = useState("")
@@ -406,19 +500,39 @@ function ManualTab() {
 
   const isValid = title.trim().length > 0
 
+  async function saveCommitment() {
+    try {
+      await axios.post("http://127.0.0.1:8000/commitments", {
+        title,
+        description,
+        category: category || "other",
+        priority: priority || "medium",
+        deadline: deadline ? deadline.toISOString() : null,
+        estimated_duration: duration ? Number(duration) : null,
+      })
+
+      setTitle("")
+      setDescription("")
+      setCategory("")
+      setPriority("")
+      setDeadline(undefined)
+      setDuration("")
+      setDependencies("")
+
+      toast.success("Commitment saved.")
+      onSuccess?.()
+    } catch {
+      toast.error("Failed to save commitment.")
+    }
+  }
+
   return (
     <div className="space-y-4">
-      {/* Title */}
       <div className="space-y-1.5">
         <label className="text-xs font-medium text-foreground">Title *</label>
-        <Input
-          placeholder="What do you need to do?"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-        />
+        <Input placeholder="What do you need to do?" value={title} onChange={(e) => setTitle(e.target.value)} />
       </div>
 
-      {/* Description */}
       <div className="space-y-1.5">
         <label className="text-xs font-medium text-foreground">Description</label>
         <Textarea
@@ -429,7 +543,6 @@ function ManualTab() {
         />
       </div>
 
-      {/* Category + Priority row */}
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1.5">
           <label className="text-xs font-medium text-foreground">Category</label>
@@ -439,9 +552,7 @@ function ManualTab() {
             </SelectTrigger>
             <SelectContent>
               {categories.map((c) => (
-                <SelectItem key={c.value} value={c.value}>
-                  {c.label}
-                </SelectItem>
+                <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -454,76 +565,46 @@ function ManualTab() {
             </SelectTrigger>
             <SelectContent>
               {priorities.map((p) => (
-                <SelectItem key={p.value} value={p.value}>
-                  {p.label}
-                </SelectItem>
+                <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
               ))}
             </SelectContent>
           </Select>
         </div>
       </div>
 
-      {/* Deadline */}
       <div className="space-y-1.5">
         <label className="text-xs font-medium text-foreground">Deadline</label>
         <Popover>
           <PopoverTrigger>
-            <Button
-              variant="outline"
-              size="sm"
-              className="w-full justify-start gap-2 text-left font-normal"
-            >
+            <Button variant="outline" size="sm" className="w-full justify-start gap-2 text-left font-normal">
               <CalendarIcon className="size-4" />
               {deadline ? format(deadline, "PPP") : "Pick a date"}
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-auto p-0" align="start">
-            <Calendar
-              mode="single"
-              selected={deadline}
-              onSelect={setDeadline}
-            />
+            <Calendar mode="single" selected={deadline} onSelect={setDeadline} />
           </PopoverContent>
         </Popover>
       </div>
 
-      {/* Estimated Duration */}
       <div className="space-y-1.5">
-        <label className="text-xs font-medium text-foreground">
-          Estimated Duration (minutes)
-        </label>
-        <Input
-          type="number"
-          min={0}
-          placeholder="e.g. 60"
-          value={duration}
-          onChange={(e) => setDuration(e.target.value)}
-        />
+        <label className="text-xs font-medium text-foreground">Estimated Duration (minutes)</label>
+        <Input type="number" min={0} placeholder="e.g. 60" value={duration} onChange={(e) => setDuration(e.target.value)} />
       </div>
 
-      {/* Dependencies */}
       <div className="space-y-1.5">
         <label className="text-xs font-medium text-foreground">Dependencies</label>
-        <Input
-          placeholder="e.g. Submit design, Review feedback"
-          value={dependencies}
-          onChange={(e) => setDependencies(e.target.value)}
-        />
-        <p className="text-[10px] text-muted-foreground">
-          Comma-separated list of tasks this depends on
-        </p>
+        <Input placeholder="e.g. Submit design, Review feedback" value={dependencies} onChange={(e) => setDependencies(e.target.value)} />
+        <p className="text-[10px] text-muted-foreground">Comma-separated list of tasks this depends on</p>
       </div>
 
-      {/* Footer */}
       <div className="flex items-center justify-between pt-2 border-t border-border">
         <Badge variant="outline" className="text-xs">
           {isValid ? "Ready to save" : "Title is required"}
         </Badge>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm">
-            Cancel
-          </Button>
-          <Button size="sm" disabled={!isValid} className="gap-1.5">
+          <Button variant="outline" size="sm">Cancel</Button>
+          <Button size="sm" disabled={!isValid} className="gap-1.5" onClick={saveCommitment}>
             <CheckCircle2 className="size-4" />
             Save Commitment
           </Button>
@@ -534,8 +615,13 @@ function ManualTab() {
 }
 
 // ─── Main UploadDialog ─────────────────────────────────────────
-export function UploadDialog({ open, onOpenChange, defaultTab = "text" }: UploadDialogProps) {
+export function UploadDialog({ open, onOpenChange, defaultTab = "text", onSuccess }: UploadDialogProps) {
   const [activeTab, setActiveTab] = useState(defaultTab)
+
+  const handleSuccess = () => {
+    onSuccess?.()
+    onOpenChange(false)
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -568,16 +654,16 @@ export function UploadDialog({ open, onOpenChange, defaultTab = "text" }: Upload
               <TextTab />
             </TabsContent>
             <TabsContent value="pdf">
-              <PdfTab />
+              <PdfTab onSuccess={handleSuccess} />
             </TabsContent>
             <TabsContent value="image">
-              <ImageTab />
+              <ImageTab onSuccess={handleSuccess} />
             </TabsContent>
             <TabsContent value="voice">
-              <VoiceTab />
+              <VoiceTab onSuccess={handleSuccess} />
             </TabsContent>
             <TabsContent value="manual">
-              <ManualTab />
+              <ManualTab onSuccess={handleSuccess} />
             </TabsContent>
           </div>
         </Tabs>

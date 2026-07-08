@@ -18,6 +18,7 @@ export interface Filters {
   priority: string
   category: string
   status: string
+  source: string
   sortField: SortField
   sortOrder: "asc" | "desc"
 }
@@ -77,15 +78,12 @@ export function CommitmentFilters({ filters, onFiltersChange }: CommitmentFilter
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Categories</SelectItem>
-            <SelectItem value="assignment">Assignment</SelectItem>
-            <SelectItem value="exam">Exam</SelectItem>
-            <SelectItem value="interview">Interview</SelectItem>
-            <SelectItem value="meeting">Meeting</SelectItem>
-            <SelectItem value="project">Project</SelectItem>
-            <SelectItem value="bill">Bill</SelectItem>
-            <SelectItem value="health">Health</SelectItem>
+            <SelectItem value="work">Work</SelectItem>
             <SelectItem value="personal">Personal</SelectItem>
-            <SelectItem value="event">Event</SelectItem>
+            <SelectItem value="health">Health</SelectItem>
+            <SelectItem value="finance">Finance</SelectItem>
+            <SelectItem value="study">Study</SelectItem>
+            <SelectItem value="shopping">Shopping</SelectItem>
             <SelectItem value="other">Other</SelectItem>
           </SelectContent>
         </Select>
@@ -100,8 +98,22 @@ export function CommitmentFilters({ filters, onFiltersChange }: CommitmentFilter
             <SelectItem value="pending">Pending</SelectItem>
             <SelectItem value="in_progress">In Progress</SelectItem>
             <SelectItem value="completed">Completed</SelectItem>
-            <SelectItem value="missed">Missed</SelectItem>
             <SelectItem value="cancelled">Cancelled</SelectItem>
+          </SelectContent>
+        </Select>
+
+        {/* Source filter */}
+        <Select value={filters.source} onValueChange={(v) => update("source", v ?? "all")}>
+          <SelectTrigger size="sm" className="w-[130px]">
+            <SelectValue placeholder="Source" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Sources</SelectItem>
+            <SelectItem value="manual">Manual</SelectItem>
+            <SelectItem value="text">Text</SelectItem>
+            <SelectItem value="voice">Voice</SelectItem>
+            <SelectItem value="image">Image</SelectItem>
+            <SelectItem value="pdf">PDF</SelectItem>
           </SelectContent>
         </Select>
 

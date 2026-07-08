@@ -2,12 +2,43 @@
 
 import { useState } from "react"
 import { motion } from "framer-motion"
-import { Send, Paperclip, Mic, Sparkles } from "lucide-react"
+import { Send, Sparkles, Loader2 } from "lucide-react"
+import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { aiService } from "@/services/aiService"
 
-export function AICommandCenter() {
+interface AICommandCenterProps {
+  onSuccess?: () => void
+}
+
+export function AICommandCenter({ onSuccess }: AICommandCenterProps) {
   const [input, setInput] = useState("")
+  const [submitting, setSubmitting] = useState(false)
+
+  const handleSubmit = async () => {
+    const text = input.trim()
+    if (!text || submitting) return
+
+    setSubmitting(true)
+    try {
+      await aiService.extractText(text)
+      setInput("")
+      toast.success("Commitments extracted and saved.")
+      onSuccess?.()
+    } catch {
+      toast.error("Failed to extract commitments. Please try again.")
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault()
+      handleSubmit()
+    }
+  }
 
   return (
     <motion.div
@@ -26,23 +57,22 @@ export function AICommandCenter() {
           placeholder="What would you like HeroBrine AI to remember?"
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          className="border-none bg-transparent shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 px-0 text-sm placeholder:text-muted-foreground/60 h-auto flex-1"
+          onKeyDown={handleKeyDown}
+          disabled={submitting}
+          className="border-none bg-transparent shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 px-0 text-sm placeholder:text-muted-foreground/60 h-auto flex-1 disabled:opacity-50"
         />
-        <div className="flex items-center gap-1 shrink-0">
-          <Button variant="ghost" size="icon-sm" aria-label="Attach file">
-            <Paperclip className="size-4" />
-          </Button>
-          <Button variant="ghost" size="icon-sm" aria-label="Voice input">
-            <Mic className="size-4" />
-          </Button>
-          <Button
-            size="icon-sm"
-            aria-label="Send"
-            disabled={!input.trim()}
-          >
+        <Button
+          size="icon-sm"
+          aria-label="Send"
+          disabled={!input.trim() || submitting}
+          onClick={handleSubmit}
+        >
+          {submitting ? (
+            <Loader2 className="size-4 animate-spin" />
+          ) : (
             <Send className="size-4" />
-          </Button>
-        </div>
+          )}
+        </Button>
       </div>
     </motion.div>
   )
