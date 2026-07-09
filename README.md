@@ -19,7 +19,11 @@ HeroBrine AI helps users capture commitments from multiple platforms—including
 - Dark UI
 
 ---
-
+<p align="center">
+  <img src="assets/Screenshot 2026-07-10 002910.png" width="900"/>
+  <br>
+  <em>HeroBrine AI Dashboard</em>
+</p>
 ### 🤖 AI Commitment Extraction
 
 Extract commitments from:
@@ -374,6 +378,11 @@ POST /ai/voice
 Transcribes audio, extracts commitments, and stores them.
 
 ---
+<p align="center">
+  <img src="assets/Screenshot 2026-07-10 002742.png" width="900"/>
+  <br>
+  <em>FastAPI Endpoints</em>
+</p>
 
 # 🔄 Workflow
 
