@@ -27,7 +27,7 @@ export function AICommandCenter({ onSuccess }: AICommandCenterProps) {
       toast.success("Commitments extracted and saved.")
       onSuccess?.()
     } catch {
-      toast.error("Failed to extract commitments. Please try again.")
+      toast.error("Wait.....")
     } finally {
       setSubmitting(false)
     }

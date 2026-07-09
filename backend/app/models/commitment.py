@@ -10,7 +10,7 @@ from typing import Any
 from uuid import UUID, uuid4
 
 from sqlalchemy import Boolean, CheckConstraint, DateTime, Enum as SAEnum
-from sqlalchemy import Float, Index, Integer, String, func, text
+from sqlalchemy import Float, ForeignKey, Index, Integer, String, func, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
 from sqlalchemy.orm import Mapped, mapped_column
@@ -33,12 +33,18 @@ class Commitment(Base):
         Index("ix_commitments_status", "status"),
         Index("ix_commitments_category", "category"),
         Index("ix_commitments_priority", "priority"),
+        Index("ix_commitments_user_id", "user_id"),
     )
 
     id: Mapped[UUID] = mapped_column(
         PGUUID(as_uuid=True),
         primary_key=True,
         default=uuid4,
+    )
+    user_id: Mapped[str] = mapped_column(
+        String(255),
+        nullable=False,
+        index=True,
     )
     title: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[str | None] = mapped_column(String(length=4000))

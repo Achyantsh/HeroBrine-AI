@@ -29,8 +29,9 @@ class CommitmentService:
     def create_commitment(
         self,
         data: CommitmentCreate,
+        user_id: str,
     ) -> Commitment:
-        """Build a Commitment model from validated input and persist it."""
+        """Build a Commitment model from validated input, attach user_id, and persist it."""
 
         commitment = Commitment(
             title=data.title,
@@ -40,6 +41,7 @@ class CommitmentService:
             priority=data.priority,
             deadline=data.deadline,
             estimated_duration=data.estimated_duration,
+            user_id=user_id,
         )
 
         return self.repository.create(commitment)
@@ -47,34 +49,39 @@ class CommitmentService:
     def create_many_commitments(
         self,
         commitments: list[Commitment],
+        user_id: str,
     ) -> list[Commitment]:
-        """Persist multiple commitments through the repository layer."""
+        """Attach user_id to each and persist through the repository layer."""
+
+        for c in commitments:
+            c.user_id = user_id
 
         return self.repository.create_many(commitments)
 
-    def get_all_commitments(self) -> list[Commitment]:
-        """Return all commitments using the repository layer."""
+    def get_all_commitments(self, user_id: str) -> list[Commitment]:
+        """Return all commitments for the user."""
 
-        return self.repository.get_all_commitments()
+        return self.repository.get_all_commitments(user_id)
 
-    def get_by_id(self, commitment_id: UUID) -> Commitment | None:
-        """Return a commitment by identifier using the repository layer."""
+    def get_by_id(self, commitment_id: UUID, user_id: str) -> Commitment | None:
+        """Return a commitment by identifier scoped to the user."""
 
-        return self.repository.get_by_id(commitment_id)
+        return self.repository.get_by_id_for_user(commitment_id, user_id)
 
-    def list_all(self, skip: int = 0, limit: int = 100) -> list[Commitment]:
-        """Return commitments using the repository layer with offset and limit."""
+    def list_all(self, user_id: str, skip: int = 0, limit: int = 100) -> list[Commitment]:
+        """Return commitments for the user with offset and limit."""
 
-        return self.repository.list_all(skip=skip, limit=limit)
+        return self.repository.list_all(user_id, skip=skip, limit=limit)
 
     def update_commitment(
         self,
         commitment_id: UUID,
         data: CommitmentUpdate,
+        user_id: str,
     ) -> Commitment:
-        """Apply partial updates to a commitment and persist the changes."""
+        """Apply partial updates to a commitment scoped to the user."""
 
-        commitment = self.repository.get_by_id(commitment_id)
+        commitment = self.repository.get_by_id_for_user(commitment_id, user_id)
         if commitment is None:
             raise HTTPException(status_code=404, detail="Commitment not found")
 
@@ -85,10 +92,10 @@ class CommitmentService:
         commitment.updated_at = datetime.now(timezone.utc)
         return self.repository.update(commitment)
 
-    def delete_commitment(self, commitment_id: UUID) -> None:
-        """Delete a commitment after ensuring it exists."""
+    def delete_commitment(self, commitment_id: UUID, user_id: str) -> None:
+        """Delete a commitment after ensuring it exists and belongs to user."""
 
-        commitment = self.repository.get_by_id(commitment_id)
+        commitment = self.repository.get_by_id_for_user(commitment_id, user_id)
         if commitment is None:
             raise HTTPException(status_code=404, detail="Commitment not found")
 

@@ -56,10 +56,14 @@ class CommitmentRepository:
         self.db.delete(commitment)
         self.db.commit()
 
-    def get_all_commitments(self) -> list[Commitment]:
-        """Return all commitments ordered by newest first."""
+    def get_all_commitments(self, user_id: str) -> list[Commitment]:
+        """Return all commitments for a user ordered by newest first."""
 
-        statement = select(Commitment).order_by(Commitment.created_at.desc())
+        statement = (
+            select(Commitment)
+            .where(Commitment.user_id == user_id)
+            .order_by(Commitment.created_at.desc())
+        )
         return list(self.db.scalars(statement).all())
 
     def get_by_id(self, commitment_id: UUID) -> Commitment | None:
@@ -67,11 +71,21 @@ class CommitmentRepository:
 
         return self.db.get(Commitment, commitment_id)
 
-    def list_all(self, skip: int = 0, limit: int = 100) -> list[Commitment]:
-        """Return commitments ordered by newest first with offset and limit."""
+    def get_by_id_for_user(self, commitment_id: UUID, user_id: str) -> Commitment | None:
+        """Return a commitment by id that belongs to the specified user."""
+
+        statement = select(Commitment).where(
+            Commitment.id == commitment_id,
+            Commitment.user_id == user_id,
+        )
+        return self.db.scalars(statement).first()
+
+    def list_all(self, user_id: str, skip: int = 0, limit: int = 100) -> list[Commitment]:
+        """Return commitments for a user ordered by newest first with offset and limit."""
 
         statement = (
             select(Commitment)
+            .where(Commitment.user_id == user_id)
             .order_by(Commitment.created_at.desc())
             .offset(skip)
             .limit(limit)

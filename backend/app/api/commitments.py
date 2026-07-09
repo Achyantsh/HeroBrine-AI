@@ -10,6 +10,7 @@ from fastapi import HTTPException
 from fastapi import Response
 from fastapi import Query
 
+from app.auth.dependencies import get_current_user
 from app.schemas.commitment import (
     CommitmentCreate,
     CommitmentResponse,
@@ -30,11 +31,13 @@ router = APIRouter(
 )
 def create_commitment(
     payload: CommitmentCreate,
+    current_user: dict = Depends(get_current_user),
     service: CommitmentService = Depends(get_commitment_service),
 ) -> CommitmentResponse:
-    """Create a commitment via the service layer."""
+    """Create a commitment for the authenticated user."""
 
-    return service.create_commitment(payload)
+    user_id = current_user.get("sub", str(current_user.get("id", "")))
+    return service.create_commitment(payload, user_id)
 
 
 @router.get(
@@ -42,11 +45,13 @@ def create_commitment(
     response_model=list[CommitmentResponse],
 )
 def get_commitments(
+    current_user: dict = Depends(get_current_user),
     service: CommitmentService = Depends(get_commitment_service),
 ) -> list[CommitmentResponse]:
-    """Return all commitments ordered from newest to oldest."""
+    """Return all commitments for the authenticated user ordered from newest to oldest."""
 
-    return service.list_all()
+    user_id = current_user.get("sub", str(current_user.get("id", "")))
+    return service.list_all(user_id)
 
 
 @router.get(
@@ -55,11 +60,13 @@ def get_commitments(
 )
 def get_commitment_by_id(
     commitment_id: UUID,
+    current_user: dict = Depends(get_current_user),
     service: CommitmentService = Depends(get_commitment_service),
 ) -> CommitmentResponse:
-    """Return a single commitment by identifier."""
+    """Return a single commitment scoped to the authenticated user."""
 
-    commitment = service.get_by_id(commitment_id)
+    user_id = current_user.get("sub", str(current_user.get("id", "")))
+    commitment = service.get_by_id(commitment_id, user_id)
     if commitment is None:
         raise HTTPException(status_code=404, detail="Commitment not found")
 
@@ -73,11 +80,13 @@ def get_commitment_by_id(
 def update_commitment(
     commitment_id: UUID,
     payload: CommitmentUpdate,
+    current_user: dict = Depends(get_current_user),
     service: CommitmentService = Depends(get_commitment_service),
 ) -> CommitmentResponse:
-    """Partially update a commitment and return the updated record."""
+    """Partially update a commitment scoped to the authenticated user."""
 
-    return service.update_commitment(commitment_id, payload)
+    user_id = current_user.get("sub", str(current_user.get("id", "")))
+    return service.update_commitment(commitment_id, payload, user_id)
 
 
 @router.delete(
@@ -86,9 +95,11 @@ def update_commitment(
 )
 def delete_commitment(
     commitment_id: UUID,
+    current_user: dict = Depends(get_current_user),
     service: CommitmentService = Depends(get_commitment_service),
 ) -> Response:
-    """Delete a commitment and return no content."""
+    """Delete a commitment scoped to the authenticated user."""
 
-    service.delete_commitment(commitment_id)
+    user_id = current_user.get("sub", str(current_user.get("id", "")))
+    service.delete_commitment(commitment_id, user_id)
     return Response(status_code=204)

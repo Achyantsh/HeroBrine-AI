@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Commitment } from "@/types/commitment"
 import { CommitmentActionsMenu } from "@/components/commitments/CommitmentActionsMenu"
-
+import { useRouter } from "next/navigation"
 interface UpcomingCommitmentsProps {
   commitments: Commitment[]
   loading: boolean
@@ -133,14 +133,19 @@ export function UpcomingCommitments({
         new Date(a.deadline!).getTime() -
         new Date(b.deadline!).getTime()
     )
-
+    const router = useRouter()
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-foreground">
           Upcoming Commitments
         </h2>
-        <Button variant="ghost" size="xs" className="text-xs">
+        <Button
+        variant="ghost"
+        size="xs"
+        className="text-xs"
+        onClick={() => router.push("/commitments")}
+        >
           View all
         </Button>
       </div>

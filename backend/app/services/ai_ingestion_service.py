@@ -71,41 +71,42 @@ class AIIngestionService:
 
         return self.extractor.extract(text)
 
-    def ingest_text(self, text: str) -> list[CommitmentResponse]:
-        """Extract commitments from text and persist them."""
+    def ingest_text(self, text: str, user_id: str) -> list[CommitmentResponse]:
+        """Extract commitments from text and persist them for the given user."""
 
         extracted = self.extractor.extract(text)
-        return self._persist_extracted_commitments(extracted.commitments)
+        return self._persist_extracted_commitments(extracted.commitments, user_id)
 
-    def ingest_pdf(self, file: UploadFile) -> list[CommitmentResponse]:
-        """Extract commitments from a PDF file and persist them."""
+    def ingest_pdf(self, file: UploadFile, user_id: str) -> list[CommitmentResponse]:
+        """Extract commitments from a PDF file and persist them for the given user."""
 
         self._validate_pdf_upload(file)
         text = self.pdf_parser.extract_text(file.file)
-        return self.ingest_text(text)
+        return self.ingest_text(text, user_id)
 
-    def ingest_image(self, file: UploadFile) -> list[CommitmentResponse]:
-        """Extract commitments from an image file and persist them."""
+    def ingest_image(self, file: UploadFile, user_id: str) -> list[CommitmentResponse]:
+        """Extract commitments from an image file and persist them for the given user."""
 
         self._validate_image_upload(file)
         text = self.image_parser.extract_text(file.file)
-        return self.ingest_text(text)
+        return self.ingest_text(text, user_id)
 
-    def ingest_voice(self, file: UploadFile) -> list[CommitmentResponse]:
-        """Extract commitments from an audio file and persist them."""
+    def ingest_voice(self, file: UploadFile, user_id: str) -> list[CommitmentResponse]:
+        """Extract commitments from an audio file and persist them for the given user."""
 
         self._validate_voice_upload(file)
         text = self.voice_parser.extract_text(file.file)
-        return self.ingest_text(text)
+        return self.ingest_text(text, user_id)
 
     def _persist_extracted_commitments(
         self,
         commitments: list[AICommitment],
+        user_id: str,
     ) -> list[CommitmentResponse]:
-        """Convert AI commitments into ORM models and persist them."""
+        """Convert AI commitments into ORM models and persist them for the user."""
 
         domain_commitments = to_commitments(commitments)
-        return self.commitment_service.create_many_commitments(domain_commitments)
+        return self.commitment_service.create_many_commitments(domain_commitments, user_id)
 
     @staticmethod
     def _validate_pdf_upload(file: UploadFile) -> None:

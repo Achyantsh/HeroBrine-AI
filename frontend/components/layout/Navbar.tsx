@@ -5,13 +5,13 @@ import { useTheme } from "next-themes"
 import { useEffect, useState } from "react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
+import { UserMenu } from "@/components/auth/UserMenu"
 
 interface NavbarProps {
   className?: string
@@ -94,23 +94,8 @@ export function Navbar({ className }: NavbarProps) {
           <TooltipContent>Notifications</TooltipContent>
         </Tooltip>
 
-        {/* User avatar */}
-        <Tooltip>
-          <TooltipTrigger>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="ml-1 rounded-full"
-              aria-label="User menu"
-            >
-              <Avatar size="sm">
-                <AvatarImage src="" alt="User avatar" />
-                <AvatarFallback>HA</AvatarFallback>
-              </Avatar>
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>Profile</TooltipContent>
-        </Tooltip>
+        {/* User menu */}
+        <UserMenu />
       </div>
     </header>
   )

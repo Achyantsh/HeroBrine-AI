@@ -1,5 +1,5 @@
 "use client"
-import axios from "axios"
+import api from "@/lib/api"
 import { useState, useCallback } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { format } from "date-fns"
@@ -62,7 +62,7 @@ interface TabDefinition {
 }
 
 const tabs: TabDefinition[] = [
-  { value: "text", label: "Text", icon: FileText },
+  // { value: "text", label: "Text", icon: FileText },
   { value: "pdf", label: "PDF", icon: FileUp },
   { value: "image", label: "Image", icon: FileImage },
   { value: "voice", label: "Voice", icon: Mic },
@@ -117,7 +117,7 @@ function PdfTab({ onSuccess }: { onSuccess?: () => void }) {
     try {
       const formData = new FormData()
       formData.append("file", file)
-      await axios.post("http://127.0.0.1:8000/ai/pdf", formData, {
+      await api.post("/ai/pdf", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       })
       setFile(null)
@@ -209,7 +209,7 @@ function ImageTab({ onSuccess }: { onSuccess?: () => void }) {
     try {
       const formData = new FormData()
       formData.append("file", file)
-      await axios.post("http://127.0.0.1:8000/ai/image", formData, {
+      await api.post("/ai/image", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       })
       clearImage()
@@ -334,7 +334,7 @@ function VoiceTab({ onSuccess }: { onSuccess?: () => void }) {
     try {
       const formData = new FormData()
       formData.append("file", audioBlob, "recording.webm")
-      await axios.post("http://127.0.0.1:8000/ai/voice", formData, {
+      await api.post("/ai/voice", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       })
       setAudioBlob(null)
@@ -502,7 +502,7 @@ function ManualTab({ onSuccess }: { onSuccess?: () => void }) {
 
   async function saveCommitment() {
     try {
-      await axios.post("http://127.0.0.1:8000/commitments", {
+      await api.post("/commitments", {
         title,
         description,
         category: category || "other",
@@ -650,9 +650,9 @@ export function UploadDialog({ open, onOpenChange, defaultTab = "text", onSucces
           </TabsList>
 
           <div className="mt-4">
-            <TabsContent value="text">
+            {/* <TabsContent value="text">
               <TextTab />
-            </TabsContent>
+            </TabsContent> */}
             <TabsContent value="pdf">
               <PdfTab onSuccess={handleSuccess} />
             </TabsContent>

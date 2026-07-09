@@ -31,3 +31,8 @@ pypdf
 pillow
 pytesseract
 python-dateutil
+
+# JWT verification via Supabase JWKS (ES256 asymmetric)
+PyJWT>=2.10.0
+cryptography>=41.0.0
+httpx>=0.25.0
