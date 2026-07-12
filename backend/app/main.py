@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.ai import router as ai_router
 from app.api.commitments import router as commitment_router
+from app.api.internal_discord import router as internal_discord_router
 from app.api.profile import router as profile_router
 from app.auth.dependencies import get_current_user
 from fastapi import Depends
@@ -26,6 +27,7 @@ app.add_middleware(
 
 app.include_router(ai_router)
 app.include_router(commitment_router)
+app.include_router(internal_discord_router)
 app.include_router(profile_router)
 
 
