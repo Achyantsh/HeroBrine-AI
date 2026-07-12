@@ -1,5 +1,5 @@
 """FastAPI application entrypoint for HeroBrine AI."""
-
+import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -14,12 +14,17 @@ from fastapi import Depends
 app = FastAPI(title="HeroBrine AI API")
 
 # Allow frontend to access backend
+allowed_origins = [
+    origin.strip()
+    for origin in os.getenv(
+        "ALLOWED_ORIGINS",
+        "http://localhost:3000",
+    ).split(",")
+    if origin.strip()
+]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-    ],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -37,3 +42,6 @@ def root() -> dict[str, str]:
 @app.get("/me")
 def me(user=Depends(get_current_user)):
     return user
+@app.get("/health", tags=["System"])
+async def health():
+    return {"status": "ok"}
