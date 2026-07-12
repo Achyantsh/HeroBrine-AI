@@ -19,6 +19,27 @@ class Settings(BaseSettings):
     DATABASE_URL: str = Field(
         ..., description="SQLAlchemy database connection URL."
     )
+    
+    @property
+    def SQLALCHEMY_DATABASE_URL(self) -> str:
+        database_url = self.DATABASE_URL
+
+        if database_url.startswith("postgres://"):
+            return database_url.replace(
+                "postgres://",
+                "postgresql+psycopg://",
+                1,
+            )
+
+        if database_url.startswith("postgresql://"):
+            return database_url.replace(
+                "postgresql://",
+                "postgresql+psycopg://",
+                1,
+            )
+
+        return database_url
+    
 
     APP_ENV: str = Field(
         default="development",

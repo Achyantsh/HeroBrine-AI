@@ -13,7 +13,7 @@ from app.database.base import Base
 
 
 engine = create_engine(
-	settings.DATABASE_URL,
+	settings.SQLALCHEMY_DATABASE_URL,
 	pool_pre_ping=True,
 )
 
