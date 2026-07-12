@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react"
 import { motion } from "framer-motion"
-import { User, Mail, Globe, MessageCircle, Send, Loader2, CheckCircle2, CircleOff } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { User, Mail, Globe, MessageCircle, Send, Loader2, CheckCircle2, CircleOff, Link, Unlink } from "lucide-react"
 
 import { DashboardLayout } from "@/components/layout/DashboardLayout"
 import { Button } from "@/components/ui/button"
@@ -21,11 +22,46 @@ type ProfileRow = {
 }
 
 export default function ProfilePage() {
+  const router = useRouter()
+
   const [authUser, setAuthUser] = useState<{ id: string; email?: string; user_metadata?: { full_name?: string; avatar_url?: string } } | null>(null)
   const [profile, setProfile] = useState<ProfileRow | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [timezone, setTimezone] = useState("UTC")
+  const [discordDisconnecting, setDiscordDisconnecting] = useState(false)
+
+  // Handle Discord OAuth toast from cookie (persists through redirect)
+  useEffect(() => {
+    const match = document.cookie.match(/(?:^|;\s*)hero_discord_toast=([^;]*)/)
+    if (!match) return
+
+    const discordStatus = match[1]
+
+    const messages: Record<string, string> = {
+      connected: "Discord account connected successfully!",
+      invalid_state: "Discord connection failed: invalid state. Please try again.",
+      cancelled: "Discord authorization was cancelled.",
+      token_error: "Discord connection failed: could not verify your account.",
+      already_linked: "This Discord account is already linked to another HeroBrine user.",
+      database_error: "Discord connection failed: could not save to your profile.",
+      config_error: "Discord connection is not configured correctly.",
+      unauthenticated: "Please log in before connecting Discord.",
+      unexpected_error: "An unexpected error occurred. Please try again.",
+    }
+
+    const message = messages[discordStatus]
+    if (message) {
+      if (discordStatus === "connected") {
+        toast.success(message)
+      } else {
+        toast.error(message)
+      }
+    }
+
+    // Clear the cookie so the toast does not reappear on subsequent navigations.
+    document.cookie = "hero_discord_toast=; path=/; max-age=0; SameSite=Lax"
+  }, [])
 
   useEffect(() => {
     async function load() {
@@ -113,6 +149,29 @@ export default function ProfilePage() {
     }
   }
 
+  async function handleDiscordDisconnect() {
+    if (!authUser?.id) return
+
+    setDiscordDisconnecting(true)
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ discord_id: null })
+        .eq("id", authUser.id)
+
+      if (error) {
+        throw error
+      }
+
+      setProfile((prev) => (prev ? { ...prev, discord_id: null } : null))
+      toast.success("Discord account disconnected.")
+    } catch {
+      toast.error("Failed to disconnect Discord account.")
+    } finally {
+      setDiscordDisconnecting(false)
+    }
+  }
+
   const fullName = authUser?.user_metadata?.full_name ?? ""
   const email = authUser?.email ?? ""
   const avatarUrl = authUser?.user_metadata?.avatar_url ?? null
@@ -181,18 +240,57 @@ export default function ProfilePage() {
           <h3 className="text-sm font-semibold text-foreground">Connected Accounts</h3>
 
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-foreground">Discord</span>
-            {discordConnected ? (
-              <span className="inline-flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400">
-                <CheckCircle2 className="size-3.5" />
-                Connected
-              </span>
-            ) : (
-              <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
-                <CircleOff className="size-3.5" />
-                Not Connected
-              </span>
-            )}
+            <div className="flex items-center gap-2">
+              <MessageCircle className="size-4 text-muted-foreground" />
+              <span className="text-xs font-medium text-foreground">Discord</span>
+            </div>
+            <div className="flex items-center gap-2">
+              {discordConnected ? (
+                <>
+                  <span className="inline-flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400">
+                    <CheckCircle2 className="size-3.5" />
+                    Connected
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleDiscordDisconnect}
+                    disabled={discordDisconnecting}
+                    className="h-7 text-xs"
+                  >
+                    {discordDisconnecting ? (
+                      <>
+                        <Loader2 className="size-3 animate-spin mr-1" />
+                        Disconnecting
+                      </>
+                    ) : (
+                      <>
+                        <Unlink className="size-3 mr-1" />
+                        Disconnect
+                      </>
+                    )}
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <CircleOff className="size-3.5" />
+                    Not Connected
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      window.location.href = "/api/discord/connect"
+                    }}
+                    className="h-7 text-xs"
+                  >
+                    <Link className="size-3 mr-1" />
+                    Connect Discord
+                  </Button>
+                </>
+              )}
+            </div>
           </div>
 
           <div className="flex items-center justify-between">

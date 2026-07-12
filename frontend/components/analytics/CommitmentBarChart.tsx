@@ -55,7 +55,7 @@ export function CommitmentBarChart({ analytics, loading }: CommitmentBarChartPro
                 fontSize: "13px",
                 color: "hsl(var(--popover-foreground))",
               }}
-              cursor={{ fill: "hsl(var(--muted))" }}
+              cursor={{ fill: "transparent" }}
             />
             <Legend
               wrapperStyle={{ fontSize: "12px", paddingTop: "8px" }}

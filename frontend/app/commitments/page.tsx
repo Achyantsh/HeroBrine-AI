@@ -47,14 +47,20 @@ export default function CommitmentsPage() {
   const filteredCommitments = useMemo(() => {
     let result = [...commitments]
 
-    // Search filter
+    // Search filter — searches title, description, priority, category, status, source
     if (filters.search.trim()) {
       const query = filters.search.toLowerCase()
-      result = result.filter(
-        (c) =>
-          c.title.toLowerCase().includes(query) ||
-          (c.description && c.description.toLowerCase().includes(query))
-      )
+      result = result.filter((c) => {
+        const searchable = [
+          c.title,
+          c.description ?? "",
+          c.priority,
+          c.category,
+          c.status,
+          c.source ?? "",
+        ]
+        return searchable.some((field) => field.toLowerCase().includes(query))
+      })
     }
 
     // Priority filter

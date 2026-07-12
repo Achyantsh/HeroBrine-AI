@@ -2,9 +2,16 @@
 
 import { Search, Bell, Moon, Sun } from "lucide-react"
 import { useTheme } from "next-themes"
-import { useEffect, useState } from "react"
-import { Input } from "@/components/ui/input"
+
+// import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import {
   Tooltip,
   TooltipContent,
@@ -12,18 +19,40 @@ import {
 } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
 import { UserMenu } from "@/components/auth/UserMenu"
+import { useNotifications } from "@/hooks/useNotifications"
+import type { Notification } from "@/hooks/useNotifications"
 
 interface NavbarProps {
   className?: string
 }
 
-export function Navbar({ className }: NavbarProps) {
-  const { theme, setTheme } = useTheme()
-  const [mounted, setMounted] = useState(false)
+function NotificationItem({
+  notification,
+}: {
+  notification: Notification
+}) {
+  return (
+    <div className="flex items-start gap-3 px-2 py-2 text-sm">
+      <span className="mt-0.5 text-base leading-none">
+        {notification.icon}
+      </span>
 
-  useEffect(() => {
-    setMounted(true)
-  }, [])
+      <span className="text-foreground">
+        {notification.message}
+      </span>
+    </div>
+  )
+}
+
+export function Navbar({ className }: NavbarProps) {
+  const { resolvedTheme, setTheme } = useTheme()
+  const { notifications, unreadCount, setOpened } = useNotifications()
+
+  const isDarkMode = resolvedTheme === "dark"
+
+  function handleThemeToggle() {
+    setTheme(isDarkMode ? "light" : "dark")
+  }
 
   return (
     <header
@@ -42,18 +71,19 @@ export function Navbar({ className }: NavbarProps) {
       {/* Spacer for desktop */}
       <div className="hidden md:block" />
 
-      {/* Center: Search placeholder */}
-      <div className="flex flex-1 items-center justify-center max-w-md mx-auto">
+      {/* Center: Global commitment search */}
+      {/* <div className="mx-auto flex max-w-md flex-1 items-center justify-center">
         <div className="relative w-full">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
+          <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+
           <Input
             type="search"
             placeholder="Search commitments..."
-            className="w-full pl-9 h-9 text-sm"
+            className="h-9 w-full pl-9 text-sm"
             aria-label="Search commitments"
           />
         </div>
-      </div>
+      </div> */}
 
       {/* Right: Actions */}
       <div className="flex items-center gap-1">
@@ -61,38 +91,84 @@ export function Navbar({ className }: NavbarProps) {
         <Tooltip>
           <TooltipTrigger>
             <Button
+              type="button"
               variant="ghost"
               size="icon"
-              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-              aria-label="Toggle theme"
+              onClick={handleThemeToggle}
+              aria-label={
+                isDarkMode
+                  ? "Switch to light mode"
+                  : "Switch to dark mode"
+              }
             >
-              {mounted && theme === "dark" ? (
+              {isDarkMode ? (
                 <Sun className="size-4" />
               ) : (
                 <Moon className="size-4" />
               )}
             </Button>
           </TooltipTrigger>
+
           <TooltipContent>
-            {mounted && theme === "dark" ? "Light mode" : "Dark mode"}
+            {isDarkMode ? "Light mode" : "Dark mode"}
           </TooltipContent>
         </Tooltip>
 
         {/* Notifications */}
-        <Tooltip>
-          <TooltipTrigger>
-            <Button
-              variant="ghost"
-              size="icon"
-              aria-label="Notifications"
-              className="relative"
-            >
-              <Bell className="size-4" />
-              <span className="absolute top-2 right-2 size-1.5 rounded-full bg-destructive" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>Notifications</TooltipContent>
-        </Tooltip>
+        <DropdownMenu
+          onOpenChange={(open) => {
+            if (open) {
+              setOpened(true)
+            }
+          }}
+        >
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  aria-label="Notifications"
+                  className="relative"
+                >
+                  <Bell className="size-4" />
+
+                  {unreadCount > 0 && (
+                    <span className="absolute -right-0.5 -top-0.5 flex size-4 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground">
+                      {unreadCount > 9 ? "9+" : unreadCount}
+                    </span>
+                  )}
+                </Button>
+              </DropdownMenuTrigger>
+            </TooltipTrigger>
+
+            <TooltipContent>Notifications</TooltipContent>
+          </Tooltip>
+
+          <DropdownMenuContent align="end" className="w-80">
+            <DropdownMenuLabel>
+              Notifications
+            </DropdownMenuLabel>
+
+            <DropdownMenuSeparator />
+
+            {notifications.length === 0 ? (
+              <div className="px-2 py-6 text-center text-sm text-muted-foreground">
+                No notifications.
+              </div>
+            ) : (
+              <div className="max-h-72 overflow-y-auto">
+                {notifications.map((notification) => (
+                  <NotificationItem
+                    key={notification.id}
+                    notification={notification}
+                  />
+                ))}
+              </div>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
 
         {/* User menu */}
         <UserMenu />

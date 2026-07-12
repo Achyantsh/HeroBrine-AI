@@ -33,12 +33,14 @@ import { commitmentService } from "@/services/commitmentService"
 import type { Commitment } from "@/types/commitment"
 
 const categories = [
-  { value: "work", label: "Work" },
+  
   { value: "personal", label: "Personal" },
   { value: "health", label: "Health" },
-  { value: "finance", label: "Finance" },
-  { value: "study", label: "Study" },
-  { value: "shopping", label: "Shopping" },
+  { value: "assignment", label: "Assignment" },
+  { value: "interview", label: "Interview" },
+  { value: "bill", label: "Bill" },
+  { value: "meeting", label: "Meeting" },
+  { value: "exam", label: "Exam" },
   { value: "other", label: "Other" },
 ]
 
