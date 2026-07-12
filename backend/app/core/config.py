@@ -40,8 +40,8 @@ class Settings(BaseSettings):
         description="Default Gemini model.",
     )
     TESSERACT_CMD: str = Field(
-    ...,
-    description="Path to the Tesseract OCR executable.",
+    default="tesseract",
+    description="Path or command for the Tesseract OCR executable.",
     )
 
 
