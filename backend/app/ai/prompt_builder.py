@@ -87,8 +87,24 @@ def build_commitment_prompt(text: str) -> str:
         - by the end of the week
 
         DATE RULES
+        - The user's timezone is Asia/Kolkata (UTC+05:30).
 
-        - Return deadlines in ISO-8601 datetime format.
+        Interpret all dates and times without an explicit timezone as Asia/Kolkata time.
+
+        Return every deadline as a timezone-aware ISO-8601 datetime INCLUDING the timezone offset.
+
+        Examples:
+
+        5 PM tomorrow
+        → 2026-07-14T17:00:00+05:30
+
+        9:30 AM next Monday
+        → 2026-07-20T09:30:00+05:30
+
+        If only a date is known, use 18:00 in Asia/Kolkata.
+
+        Never return timezone-naive datetimes.
+        - Return deadlines in ISO-8601 datetime format INCLUDING timezone offset.
         - Preserve timezone information whenever possible.
         - If the date is known but the time is missing, use 18:00 local time.
         - Use these defaults for named time periods:
@@ -227,7 +243,7 @@ def build_commitment_prompt(text: str) -> str:
               "description": "string or null",
               "category": "assignment | exam | interview | meeting | project | bill | health | personal | event | other",
               "priority": "low | medium | high | critical",
-              "deadline": "ISO-8601 datetime or null",
+              "deadline": "ISO-8601 datetime INCLUDING timezone offset or null",
               "estimated_duration": "integer minutes or null",
               "dependencies": [
                 "string"
@@ -337,7 +353,23 @@ def build_image_commitment_prompt() -> str:
            - no-rush activities
            - minor tasks without meaningful consequences
 
-        10. Convert dates and times to ISO-8601.
+        10. The user's timezone is Asia/Kolkata (UTC+05:30).
+
+            Interpret all dates and times without an explicit timezone as Asia/Kolkata time.
+
+            Return every deadline as a timezone-aware ISO-8601 datetime INCLUDING the timezone offset.
+
+            Examples:
+
+            5 PM tomorrow
+            → 2026-07-14T17:00:00+05:30
+
+            9:30 AM next Monday
+            → 2026-07-20T09:30:00+05:30
+
+            If only a date is known, use 18:00 in Asia/Kolkata.
+
+            Never return timezone-naive datetimes.
 
         11. If a date is visible but time is not, use 18:00.
 
