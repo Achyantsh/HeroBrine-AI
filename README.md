@@ -44,8 +44,6 @@ Dashboard, calendar, analytics, and reminders
 
 ## Live Application
 
-> Replace the placeholders below with your final production links.
-
 | Service | URL |
 |---|---|
 | Web Application | `https://your-frontend.vercel.app` |
@@ -56,35 +54,15 @@ Dashboard, calendar, analytics, and reminders
 
 ## Demo
 
-Add one short demo GIF showing the complete workflow:
 
-```text
-Connect Discord
-→ Mention HeroBrine
-→ Extract a commitment
-→ Open dashboard
-→ View the saved commitment
-```
 
 ```md
-![HeroBrine AI Demo](assets/demo.gif)
+![HeroBrine AI Demo](assets/demo.mp4)
 ```
 
 ---
 
 ## Screenshots
-
-Create an `assets/` directory and add only the screenshots that best explain the product.
-
-```text
-assets/
-├── dashboard.png
-├── discord-demo.png
-├── calendar.png
-├── analytics.png
-├── profile.png
-└── demo.gif
-```
 
 <div align="center">
 
