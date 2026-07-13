@@ -1,49 +1,86 @@
-"""Image text extraction utilities.
-
-This module provides OCR functionality for uploaded image files.
-"""
-
 from __future__ import annotations
 
+from dataclasses import dataclass
+from io import BytesIO
 from typing import BinaryIO
 
-from PIL import Image, ImageOps
-import pytesseract
+from PIL import Image, UnidentifiedImageError
 
-from app.core.config import settings
+
+SUPPORTED_IMAGE_TYPES = {
+    "image/png",
+    "image/jpeg",
+    "image/webp",
+}
+
+MAX_IMAGE_BYTES = 20 * 1024 * 1024
+
+
+@dataclass(frozen=True)
+class ParsedImage:
+    content: bytes
+    mime_type: str
 
 
 class ImageParser:
-    """Extract plain text from image files using Tesseract OCR."""
+    def parse(
+        self,
+        file: BinaryIO,
+        content_type: str | None = None,
+    ) -> ParsedImage:
+        raw = file.read()
 
-    def __init__(self) -> None:
-        """Configure the Tesseract executable."""
+        if not raw:
+            raise ValueError("Uploaded image is empty.")
 
-        pytesseract.pytesseract.tesseract_cmd = settings.TESSERACT_CMD
+        if len(raw) > MAX_IMAGE_BYTES:
+            raise ValueError(
+                "Image exceeds the 20 MB limit."
+            )
 
-    def extract_text(self, file: BinaryIO) -> str:
-        """Extract readable text from an uploaded image."""
+        try:
+            image = Image.open(BytesIO(raw))
+            image.verify()
+        except UnidentifiedImageError as exc:
+            raise ValueError(
+                "Uploaded file is not a valid image."
+            ) from exc
 
-        image = Image.open(file)
+        detected_format = image.format
 
-        # Convert to grayscale
-        image = image.convert("L")
-
-        # Increase contrast
-        image = ImageOps.autocontrast(image)
-
-        # Enlarge image for OCR
-        image = image.resize(
-        (image.width * 3, image.height * 3)
+        mime_type = self._resolve_mime_type(
+            content_type=content_type,
+            detected_format=detected_format,
         )
 
-        custom_config = "--oem 3 --psm 6"
+        return ParsedImage(
+            content=raw,
+            mime_type=mime_type,
+        )
 
-        text = pytesseract.image_to_string(
-            image,
-            config=custom_config,
-            ).strip()
-        if not text:
-          raise ValueError("Unable to extract text from image.")
+    @staticmethod
+    def _resolve_mime_type(
+        content_type: str | None,
+        detected_format: str | None,
+    ) -> str:
+        normalized = (content_type or "").lower()
 
-        return text
+        if normalized in SUPPORTED_IMAGE_TYPES:
+            return normalized
+
+        format_mapping = {
+            "PNG": "image/png",
+            "JPEG": "image/jpeg",
+            "WEBP": "image/webp",
+        }
+
+        mime_type = format_mapping.get(
+            detected_format or ""
+        )
+
+        if not mime_type:
+            raise ValueError(
+                "Unsupported image format. Use PNG, JPEG, or WebP."
+            )
+
+        return mime_type

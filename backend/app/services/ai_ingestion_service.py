@@ -1,6 +1,7 @@
 """AI ingestion service.
 
-This module orchestrates text, PDF, and image ingestion into persisted commitments.
+This module orchestrates text, PDF, image, and voice ingestion into
+persisted commitments.
 """
 
 from __future__ import annotations
@@ -19,6 +20,7 @@ from app.schemas.ai import AIExtractResponse
 from app.schemas.commitment import CommitmentResponse
 from app.services.commitment_service import CommitmentService
 from app.services.commitment_service import get_commitment_service
+from app.services.gemini_vision_service import GeminiVisionService
 
 
 def get_pdf_parser() -> PDFParser:
@@ -31,6 +33,12 @@ def get_image_parser() -> ImageParser:
     """Provide an image parser through dependency injection."""
 
     return ImageParser()
+
+
+def get_gemini_vision_service() -> GeminiVisionService:
+    """Provide the Gemini Vision service through dependency injection."""
+
+    return GeminiVisionService()
 
 
 def get_voice_parser() -> VoiceParser:
@@ -48,7 +56,7 @@ def get_commitment_extractor(
 
 
 class AIIngestionService:
-    """Orchestrate AI extraction and commitment persistence for multiple inputs."""
+    """Orchestrate AI extraction and persistence for multiple input types."""
 
     def __init__(
         self,
@@ -56,14 +64,16 @@ class AIIngestionService:
         image_parser: ImageParser,
         voice_parser: VoiceParser,
         extractor: CommitmentExtractor,
+        vision_service: GeminiVisionService,
         commitment_service: CommitmentService,
     ) -> None:
-        """Initialize the service with parser, extractor, and persistence dependencies."""
+        """Initialize parser, AI, and persistence dependencies."""
 
         self.pdf_parser = pdf_parser
         self.image_parser = image_parser
         self.voice_parser = voice_parser
         self.extractor = extractor
+        self.vision_service = vision_service
         self.commitment_service = commitment_service
 
     def extract_text(self, text: str) -> AIExtractResponse:
@@ -71,31 +81,74 @@ class AIIngestionService:
 
         return self.extractor.extract(text)
 
-    def ingest_text(self, text: str, user_id: str) -> list[CommitmentResponse]:
-        """Extract commitments from text and persist them for the given user."""
+    def ingest_text(
+        self,
+        text: str,
+        user_id: str,
+    ) -> list[CommitmentResponse]:
+        """Extract and persist commitments from text."""
 
         extracted = self.extractor.extract(text)
-        return self._persist_extracted_commitments(extracted.commitments, user_id)
 
-    def ingest_pdf(self, file: UploadFile, user_id: str) -> list[CommitmentResponse]:
-        """Extract commitments from a PDF file and persist them for the given user."""
+        return self._persist_extracted_commitments(
+            extracted.commitments,
+            user_id,
+        )
+
+    def ingest_pdf(
+        self,
+        file: UploadFile,
+        user_id: str,
+    ) -> list[CommitmentResponse]:
+        """Extract and persist commitments from a PDF."""
 
         self._validate_pdf_upload(file)
+
         text = self.pdf_parser.extract_text(file.file)
+
         return self.ingest_text(text, user_id)
 
-    def ingest_image(self, file: UploadFile, user_id: str) -> list[CommitmentResponse]:
-        """Extract commitments from an image file and persist them for the given user."""
+    def ingest_image(
+        self,
+        file: UploadFile,
+        user_id: str,
+    ) -> list[CommitmentResponse]:
+        """Extract and persist commitments directly from an image."""
 
         self._validate_image_upload(file)
-        text = self.image_parser.extract_text(file.file)
-        return self.ingest_text(text, user_id)
 
-    def ingest_voice(self, file: UploadFile, user_id: str) -> list[CommitmentResponse]:
-        """Extract commitments from an audio file and persist them for the given user."""
+        parsed_image = self.image_parser.parse(
+            file=file.file,
+            content_type=file.content_type,
+        )
+
+        extraction = self.vision_service.extract_commitments(
+            parsed_image
+        )
+
+        ai_commitments = [
+            AICommitment.model_validate(
+                commitment.model_dump()
+            )
+            for commitment in extraction.commitments
+        ]
+
+        return self._persist_extracted_commitments(
+            ai_commitments,
+            user_id,
+        )
+
+    def ingest_voice(
+        self,
+        file: UploadFile,
+        user_id: str,
+    ) -> list[CommitmentResponse]:
+        """Extract and persist commitments from audio."""
 
         self._validate_voice_upload(file)
+
         text = self.voice_parser.extract_text(file.file)
+
         return self.ingest_text(text, user_id)
 
     def _persist_extracted_commitments(
@@ -103,10 +156,14 @@ class AIIngestionService:
         commitments: list[AICommitment],
         user_id: str,
     ) -> list[CommitmentResponse]:
-        """Convert AI commitments into ORM models and persist them for the user."""
+        """Convert AI results and persist them for the given user."""
 
         domain_commitments = to_commitments(commitments)
-        return self.commitment_service.create_many_commitments(domain_commitments, user_id)
+
+        return self.commitment_service.create_many_commitments(
+            domain_commitments,
+            user_id,
+        )
 
     @staticmethod
     def _validate_pdf_upload(file: UploadFile) -> None:
@@ -118,38 +175,49 @@ class AIIngestionService:
         }
 
         filename = (file.filename or "").lower()
-        if file.content_type not in allowed_types and not filename.endswith(
-            ".pdf"
+
+        if (
+            file.content_type not in allowed_types
+            and not filename.endswith(".pdf")
         ):
             raise ValueError("Invalid PDF file.")
 
     @staticmethod
     def _validate_image_upload(file: UploadFile) -> None:
-        """Validate that the uploaded file is an image."""
+        """Validate that the uploaded file is a supported image."""
 
         allowed_extensions = {
-        ".png",
-        ".jpg",
-        ".jpeg",
-        ".webp",
-        ".bmp",
+            ".png",
+            ".jpg",
+            ".jpeg",
+            ".webp",
+        }
+
+        allowed_content_types = {
+            "image/png",
+            "image/jpeg",
+            "image/webp",
         }
 
         filename = (file.filename or "").lower()
+        content_type = (file.content_type or "").lower()
 
-        if any(filename.endswith(ext) for ext in allowed_extensions):
-            return
+        has_valid_extension = any(
+            filename.endswith(extension)
+            for extension in allowed_extensions
+        )
 
-        content_type = file.content_type or ""
-
-        if content_type.startswith("image/"):
-            return
-
-        raise ValueError("Invalid image file.")
+        if (
+            not has_valid_extension
+            and content_type not in allowed_content_types
+        ):
+            raise ValueError(
+                "Invalid image. Use PNG, JPEG, or WebP."
+            )
 
     @staticmethod
     def _validate_voice_upload(file: UploadFile) -> None:
-        """Validate that the uploaded file is an audio file."""
+        """Validate that the uploaded file is audio."""
 
         allowed_extensions = {
             ".mp3",
@@ -161,7 +229,10 @@ class AIIngestionService:
 
         filename = (file.filename or "").lower()
 
-        if any(filename.endswith(ext) for ext in allowed_extensions):
+        if any(
+            filename.endswith(extension)
+            for extension in allowed_extensions
+        ):
             return
 
         content_type = file.content_type or ""
@@ -176,15 +247,23 @@ def get_ai_ingestion_service(
     pdf_parser: PDFParser = Depends(get_pdf_parser),
     image_parser: ImageParser = Depends(get_image_parser),
     voice_parser: VoiceParser = Depends(get_voice_parser),
-    extractor: CommitmentExtractor = Depends(get_commitment_extractor),
-    commitment_service: CommitmentService = Depends(get_commitment_service),
+    extractor: CommitmentExtractor = Depends(
+        get_commitment_extractor
+    ),
+    vision_service: GeminiVisionService = Depends(
+        get_gemini_vision_service
+    ),
+    commitment_service: CommitmentService = Depends(
+        get_commitment_service
+    ),
 ) -> AIIngestionService:
-    """Provide the unified AI ingestion service through dependency injection."""
+    """Provide the unified ingestion service through dependency injection."""
 
     return AIIngestionService(
         pdf_parser=pdf_parser,
         image_parser=image_parser,
         voice_parser=voice_parser,
         extractor=extractor,
+        vision_service=vision_service,
         commitment_service=commitment_service,
     )

@@ -265,3 +265,88 @@ def build_commitment_prompt(text: str) -> str:
         {cleaned_text}
         """
     ).strip()
+
+from datetime import datetime, timezone
+from textwrap import dedent
+
+
+def build_image_commitment_prompt() -> str:
+    current_datetime = (
+        datetime.now(timezone.utc)
+        .astimezone()
+        .isoformat()
+    )
+
+    return dedent(
+        f"""
+        You are HeroBrine AI's multimodal commitment extraction engine.
+
+        Analyze the supplied image carefully.
+
+        The image may contain:
+        - screenshots
+        - handwritten notes
+        - posters
+        - schedules
+        - notices
+        - assignment instructions
+        - event announcements
+        - chat conversations
+        - emails
+        - timetables
+        - receipts or payment reminders
+
+        Extract every actionable commitment visible or clearly implied by the
+        image.
+
+        Current date and time:
+        {current_datetime}
+
+        Rules:
+
+        1. Extract every independent commitment separately.
+
+        2. The title must be concise and action-oriented.
+
+        3. Category must be exactly one of:
+           assignment, exam, interview, meeting, project, bill,
+           health, personal, event, other.
+
+        4. Priority is mandatory and must be exactly one of:
+           low, medium, high, critical.
+
+        5. Never omit priority.
+
+        6. If priority is uncertain, use medium.
+
+        7. Use high for:
+           - important academic submissions
+           - exams
+           - interviews
+           - payment deadlines
+           - deadlines within 24 hours
+
+        8. Use critical for:
+           - emergencies
+           - overdue tasks
+           - deadlines within 6 hours
+           - explicit urgent or ASAP instructions
+
+        9. Use low for:
+           - optional tasks
+           - no-rush activities
+           - minor tasks without meaningful consequences
+
+        10. Convert dates and times to ISO-8601.
+
+        11. If a date is visible but time is not, use 18:00.
+
+        12. If no deadline can reasonably be inferred, use null.
+
+        13. Do not invent content that is not visible or strongly implied.
+
+        14. If no actionable commitments exist, return an empty commitments list.
+
+        Return only data matching the required response schema.
+        """
+    ).strip()
