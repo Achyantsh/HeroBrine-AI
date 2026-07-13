@@ -56,9 +56,9 @@ Dashboard, calendar, analytics, and reminders
 
 
 
-```md
-![HeroBrine AI Demo](assets/demo.mp4)
-```
+### Product Demo
+
+[▶ Watch the HeroBrine AI demo](assets/demo.mp4)
 
 ---
 
