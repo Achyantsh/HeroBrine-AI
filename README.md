@@ -46,9 +46,9 @@ Dashboard, calendar, analytics, and reminders
 
 | Service | URL |
 |---|---|
-| Web Application | `[Link](https://herobrine-ai.vercel.app/)` |
-| FastAPI Documentation | `[Link](https://herobrine-backend-production.up.railway.app/docs)` |
-| Backend Health Check | `[Link](https://herobrine-backend-production.up.railway.app/health)` |
+| Web Application | [Herobrine AI](https://herobrine-ai.vercel.app/) |
+| FastAPI Documentation | [API Docs](https://herobrine-backend-production.up.railway.app/docs) |
+| Backend Health Check | [Health Check](https://herobrine-backend-production.up.railway.app/health) |
 
 ---
 
