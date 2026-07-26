@@ -60,9 +60,9 @@ Dashboard, calendar, analytics, and reminders
 
 | Service | URL |
 |---|---|
-| Web Application | `https://your-frontend.vercel.app` |
-| FastAPI Documentation | `https://your-backend.up.railway.app/docs` |
-| Backend Health Check | `https://your-backend.up.railway.app/health` |
+| Web Application | [Herobrine AI](https://herobrine-ai.vercel.app/) |
+| FastAPI Documentation | [API Docs](https://herobrine-backend-production.up.railway.app/docs) |
+| Backend Health Check | [Health Check](https://herobrine-backend-production.up.railway.app/health) |
 
 ---
 
@@ -70,9 +70,9 @@ Dashboard, calendar, analytics, and reminders
 
 
 
-```md
-![HeroBrine AI Demo](assets/demo.mp4)
-```
+### Product Demo
+
+[▶ Watch the HeroBrine AI demo](assets/demo.mp4)
 
 ---
 
