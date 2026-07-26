@@ -11,18 +11,18 @@ export default function SignupPage() {
     <AuthCard
       title="Create your account"
       subtitle="Start organizing your commitments intelligently."
-      footer={
-        <>
-          Already have an account?{" "}
-          <button
-            type="button"
-            onClick={() => router.push("/login")}
-            className="text-primary hover:underline"
-          >
-            Login
-          </button>
-        </>
-      }
+      // footer={
+      //   <>
+      //     Already have an account?{" "}
+      //     <button
+      //       type="button"
+      //       onClick={() => router.push("/login")}
+      //       className="text-primary hover:underline"
+      //     >
+      //       Login
+      //     </button>
+      //   </>
+      // }
     >
       <SignupForm onToggleMode={() => router.push("/login")} />
     </AuthCard>

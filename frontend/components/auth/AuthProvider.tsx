@@ -70,7 +70,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       mounted = false
       subscription.unsubscribe()
     }
-  }, [router, supabase.auth])
+  }, [router])
 
   return (
     <AuthContext.Provider value={{ user, session, loading, initialized }}>

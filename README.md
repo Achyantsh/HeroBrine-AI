@@ -22,6 +22,20 @@ Capture tasks from the web or Discord, extract deadlines and priorities with AI,
 
 ---
 
+## The Problem: The "Commitment Gap" in Modern Workflows
+
+In today’s fast-paced digital environment, work happens everywhere. Commitments are routinely made across highly fragmented, unstructured channels—a quick mention in a Discord server, a voice note on the go, a scribbled whiteboard diagram, or a dense PDF report. 
+
+However, traditional task management systems rely on rigid, manual data entry. This creates a significant workflow bottleneck:
+
+*   **High Friction in Capture:** Translating a passing message ("Can you send me the final report by tomorrow at 5 PM?") into a structured task requires breaking focus, switching contexts, opening a new application, and manually logging the deadline, priority, and category.
+*   **Context Loss & Missed Deadlines:** Because manual capture is tedious, micro-commitments are often left in chat logs or voice memos where they are easily forgotten, leading to missed deadlines and disorganized workflows.
+*   **Format Limitations:** Most productivity tools cannot interpret multi-modal intent. They require users to process images, PDFs, or audio themselves before a task can even be created.
+
+**The industry needs a seamless bridge**—a system that eliminates the friction of task creation by automatically extracting intent, temporal data, and context from *any* unstructured medium, directly within the spaces where users already communicate.
+
+---
+
 ## Overview
 
 HeroBrine AI is a full-stack productivity platform built to reduce the friction between **remembering a commitment** and **organizing it properly**.

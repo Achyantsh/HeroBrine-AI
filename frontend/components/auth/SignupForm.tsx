@@ -7,7 +7,7 @@ import { supabase } from "@/lib/supabase"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { toast } from "sonner"
-import Image from "next/image"
+import { FcGoogle } from "react-icons/fc";
 
 interface SignupFormProps {
   onToggleMode: () => void
@@ -21,10 +21,17 @@ export function SignupForm({ onToggleMode }: SignupFormProps) {
   const [confirmPassword, setConfirmPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [googleLoading, setGoogleLoading] = useState(false)
 
   async function handleSignup(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
+
+    if (!fullName.trim()) {
+      toast.error("Please enter your full name.")
+      setLoading(false)
+      return
+    }
 
     if (password.length < 6) {
       toast.error("Password must be at least 6 characters.")
@@ -39,13 +46,14 @@ export function SignupForm({ onToggleMode }: SignupFormProps) {
     }
 
     try {
-      const { error } = await supabase.auth.signUp({
-        email,
+      const { data, error } = await supabase.auth.signUp({
+        email: email.trim(),
         password,
         options: {
           data: {
-            full_name: fullName,
+            full_name: fullName.trim(),
           },
+          emailRedirectTo: `${window.location.origin}/auth/callback?next=/dashboard`,
         },
       })
 
@@ -54,9 +62,16 @@ export function SignupForm({ onToggleMode }: SignupFormProps) {
         return
       }
 
-      toast.success("Account created! Redirecting...")
-      router.push("/dashboard")
-      router.refresh()
+      if (data.session) {
+        toast.success("Account created successfully!")
+        router.push("/dashboard")
+        router.refresh()
+      } else {
+        toast.success(
+          "Account created. Check your email to verify your account.",
+        )
+        router.push("/login?signup=confirmation-required")
+      }
     } catch {
       toast.error("Network error. Please try again.")
     } finally {
@@ -65,19 +80,23 @@ export function SignupForm({ onToggleMode }: SignupFormProps) {
   }
 
   async function handleGoogleSignup() {
+    setGoogleLoading(true)
+
     try {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: `${window.location.origin}/dashboard`,
+          redirectTo: `${window.location.origin}/auth/callback?next=/dashboard`,
         },
       })
 
       if (error) {
-        toast.error("Failed to sign up with Google.")
+        toast.error(error.message || "Unable to continue with Google.")
+        setGoogleLoading(false)
       }
     } catch {
       toast.error("Network error. Please try again.")
+      setGoogleLoading(false)
     }
   }
 
@@ -86,11 +105,11 @@ export function SignupForm({ onToggleMode }: SignupFormProps) {
       <Button
         type="button"
         variant="outline"
-        className="w-full gap-2"
+        className="w-full"
         onClick={handleGoogleSignup}
       >
-        <Image src="/google.svg" alt="Google" width={18} height={18} />
-        Continue with Google
+      <FcGoogle className="mr-2 h-5 w-5" />
+          Continue with Google
       </Button>
 
       <div className="relative">
@@ -98,7 +117,9 @@ export function SignupForm({ onToggleMode }: SignupFormProps) {
           <span className="w-full border-t" />
         </div>
         <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-card px-2 text-muted-foreground">Or continue with email</span>
+          <span className="bg-card px-2 text-muted-foreground">
+            Or continue with email
+          </span>
         </div>
       </div>
 
