@@ -1,4 +1,5 @@
 "use client"
+import { useAuth } from "@/components/auth/AuthProvider"
 
 import { motion } from "framer-motion"
 
@@ -15,6 +16,13 @@ export function GreetingHeader() {
     year: "numeric",
   }
   const formattedDate = now.toLocaleDateString("en-US", dateOptions)
+  const { user } = useAuth()
+  const name =
+  user?.user_metadata?.full_name ??
+  user?.user_metadata?.name ??
+  user?.email?.split("@")[0] ??
+  "there"
+
 
   return (
     <motion.div
@@ -24,7 +32,7 @@ export function GreetingHeader() {
       className="space-y-1"
     >
       <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground">
-        {greeting}, Achyant
+        {greeting}, {name}
       </h1>
       <p className="text-sm text-muted-foreground">{formattedDate}</p>
       <p className="mt-1 text-sm text-muted-foreground/80 italic">
