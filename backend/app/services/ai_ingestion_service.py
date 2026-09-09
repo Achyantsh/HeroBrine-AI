@@ -7,6 +7,8 @@ persisted commitments.
 from __future__ import annotations
 
 from fastapi import Depends, UploadFile
+from sqlalchemy import text as sql_text
+from sqlalchemy.orm import Session
 
 from app.ai.extractor import CommitmentExtractor
 from app.ai.gemini_client import GeminiClient
@@ -21,6 +23,7 @@ from app.schemas.commitment import CommitmentResponse
 from app.services.commitment_service import CommitmentService
 from app.services.commitment_service import get_commitment_service
 from app.services.gemini_vision_service import GeminiVisionService
+from app.database.session import get_db
 
 
 def get_pdf_parser() -> PDFParser:
@@ -66,6 +69,7 @@ class AIIngestionService:
         extractor: CommitmentExtractor,
         vision_service: GeminiVisionService,
         commitment_service: CommitmentService,
+        db: Session,
     ) -> None:
         """Initialize parser, AI, and persistence dependencies."""
 
@@ -75,11 +79,19 @@ class AIIngestionService:
         self.extractor = extractor
         self.vision_service = vision_service
         self.commitment_service = commitment_service
+        self.db = db
 
-    def extract_text(self, text: str) -> AIExtractResponse:
+    def extract_text(
+        self,
+        text: str,
+        user_id: str,
+    ) -> AIExtractResponse:
         """Extract commitments from plain text without persisting them."""
 
-        return self.extractor.extract(text)
+        return self.extractor.extract(
+            text,
+            user_timezone=self._get_user_timezone(user_id),
+        )
 
     def ingest_text(
         self,
@@ -88,7 +100,10 @@ class AIIngestionService:
     ) -> list[CommitmentResponse]:
         """Extract and persist commitments from text."""
 
-        extracted = self.extractor.extract(text)
+        extracted = self.extractor.extract(
+            text,
+            user_timezone=self._get_user_timezone(user_id),
+        )
 
         return self._persist_extracted_commitments(
             extracted.commitments,
@@ -123,7 +138,8 @@ class AIIngestionService:
         )
 
         extraction = self.vision_service.extract_commitments(
-            parsed_image
+            parsed_image,
+            user_timezone=self._get_user_timezone(user_id),
         )
 
         ai_commitments = [
@@ -164,6 +180,23 @@ class AIIngestionService:
             domain_commitments,
             user_id,
         )
+
+    def _get_user_timezone(self, user_id: str) -> str:
+        """Return the user's IANA timezone from the profiles table."""
+
+        result = self.db.execute(
+            sql_text(
+                "SELECT timezone FROM public.profiles "
+                "WHERE id = :user_id"
+            ),
+            {"user_id": user_id},
+        )
+        timezone_name = result.scalar_one_or_none()
+
+        if isinstance(timezone_name, str) and timezone_name.strip():
+            return timezone_name.strip()
+
+        return "UTC"
 
     @staticmethod
     def _validate_pdf_upload(file: UploadFile) -> None:
@@ -256,6 +289,7 @@ def get_ai_ingestion_service(
     commitment_service: CommitmentService = Depends(
         get_commitment_service
     ),
+    db: Session = Depends(get_db),
 ) -> AIIngestionService:
     """Provide the unified ingestion service through dependency injection."""
 
@@ -266,4 +300,5 @@ def get_ai_ingestion_service(
         extractor=extractor,
         vision_service=vision_service,
         commitment_service=commitment_service,
+        db=db,
     )

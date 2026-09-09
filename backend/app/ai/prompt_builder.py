@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from textwrap import dedent
-
+from zoneinfo import ZoneInfo
 
 VALID_CATEGORIES = (
     "assignment",
@@ -31,7 +31,10 @@ VALID_PRIORITIES = (
 )
 
 
-def build_commitment_prompt(text: str) -> str:
+def build_commitment_prompt(
+  text: str,
+  user_timezone: str = "UTC",
+) -> str:
     """Build a strict commitment-extraction prompt for Gemini.
 
     The prompt guarantees that every extracted commitment must contain a valid
@@ -39,7 +42,8 @@ def build_commitment_prompt(text: str) -> str:
     """
 
     cleaned_text = text.strip()
-    current_datetime = datetime.now(timezone.utc).astimezone().isoformat()
+    timezone_info = ZoneInfo(user_timezone)
+    current_datetime = datetime.now(timezone_info).isoformat()
 
     return dedent(
         f"""
@@ -87,26 +91,15 @@ def build_commitment_prompt(text: str) -> str:
         - by the end of the week
 
         DATE RULES
-        - The user's timezone is Asia/Kolkata (UTC+05:30).
+        - The user's timezone is {user_timezone}.
 
-        Interpret all dates and times without an explicit timezone as Asia/Kolkata time.
+        Interpret all dates and times without an explicit timezone as {user_timezone}.
 
-        Return every deadline as a timezone-aware ISO-8601 datetime INCLUDING the timezone offset.
+        Return every deadline as a timezone-aware ISO-8601 datetime with the
+        correct UTC offset for that timezone, including daylight-saving changes.
 
-        Examples:
-
-        5 PM tomorrow
-        → 2026-07-14T17:00:00+05:30
-
-        9:30 AM next Monday
-        → 2026-07-20T09:30:00+05:30
-
-        If only a date is known, use 18:00 in Asia/Kolkata.
-
-        Never return timezone-naive datetimes.
-        - Return deadlines in ISO-8601 datetime format INCLUDING timezone offset.
-        - Preserve timezone information whenever possible.
-        - If the date is known but the time is missing, use 18:00 local time.
+        - If only a date is known, use 18:00 in the user's local timezone.
+        - Never return timezone-naive datetimes.
         - Use these defaults for named time periods:
           - morning: 09:00
           - noon: 12:00
@@ -282,16 +275,9 @@ def build_commitment_prompt(text: str) -> str:
         """
     ).strip()
 
-from datetime import datetime, timezone
-from textwrap import dedent
-
-
-def build_image_commitment_prompt() -> str:
-    current_datetime = (
-        datetime.now(timezone.utc)
-        .astimezone()
-        .isoformat()
-    )
+def build_image_commitment_prompt(user_timezone: str = "UTC") -> str:
+    timezone_info = ZoneInfo(user_timezone)
+    current_datetime = datetime.now(timezone_info).isoformat()
 
     return dedent(
         f"""
@@ -353,23 +339,16 @@ def build_image_commitment_prompt() -> str:
            - no-rush activities
            - minor tasks without meaningful consequences
 
-        10. The user's timezone is Asia/Kolkata (UTC+05:30).
+        10. The user's timezone is {user_timezone}.
+          Interpret all dates and times without an explicit timezone as
+          {user_timezone}.
 
-            Interpret all dates and times without an explicit timezone as Asia/Kolkata time.
+          Return every deadline as a timezone-aware ISO-8601 datetime with
+          the correct UTC offset for that timezone, including daylight-saving
+          changes when applicable.
 
-            Return every deadline as a timezone-aware ISO-8601 datetime INCLUDING the timezone offset.
-
-            Examples:
-
-            5 PM tomorrow
-            → 2026-07-14T17:00:00+05:30
-
-            9:30 AM next Monday
-            → 2026-07-20T09:30:00+05:30
-
-            If only a date is known, use 18:00 in Asia/Kolkata.
-
-            Never return timezone-naive datetimes.
+          If only a date is known, use 18:00 in the user's local timezone.
+          Never return timezone-naive datetimes.
 
         11. If a date is visible but time is not, use 18:00.
 

@@ -21,10 +21,17 @@ class CommitmentExtractor:
 
         self.client = client
 
-    def extract(self, text: str) -> AIExtractResponse:
+    def extract(
+        self,
+        text: str,
+        user_timezone: str = "UTC",
+    ) -> AIExtractResponse:
         """Extract and validate commitments from raw text."""
 
-        prompt = build_commitment_prompt(text)
+        prompt = build_commitment_prompt(
+            text,
+            user_timezone=user_timezone,
+        )
         response_text = self.client.generate_text(prompt)
 
         print("=" * 80)

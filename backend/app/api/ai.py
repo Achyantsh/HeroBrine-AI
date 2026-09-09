@@ -40,11 +40,13 @@ router = APIRouter(
 )
 def extract_commitments(
     payload: AIExtractRequest,
+    current_user: dict = Depends(get_current_user),
     service: AIIngestionService = Depends(get_ai_ingestion_service),
 ) -> AIExtractResponse:
     """Extract commitments from plain text without persisting them."""
 
-    return _call_or_raise(service.extract_text, payload.text)
+    user_id = current_user.get("sub", str(current_user.get("id", "")))
+    return _call_or_raise(service.extract_text, payload.text, user_id)
 
 
 @router.post(

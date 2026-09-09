@@ -22,6 +22,7 @@ class GeminiVisionService:
     def extract_commitments(
         self,
         image: ParsedImage,
+        user_timezone: str = "UTC",
     ) -> CommitmentExtractionResponse:
         response = self.client.models.generate_content(
             model=settings.GEMINI_MODEL,
@@ -30,7 +31,7 @@ class GeminiVisionService:
                     data=image.content,
                     mime_type=image.mime_type,
                 ),
-                build_image_commitment_prompt(),
+                build_image_commitment_prompt(user_timezone),
             ],
             config=types.GenerateContentConfig(
                 temperature=0.1,
